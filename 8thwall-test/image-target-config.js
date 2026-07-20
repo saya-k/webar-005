@@ -137,21 +137,111 @@
       #target-scan-status {
         position: fixed;
         left: 50%;
-        bottom: calc(28px + env(safe-area-inset-bottom, 0px));
+        bottom: calc(70px + env(safe-area-inset-bottom, 0px));
         z-index: 2147483646;
         transform: translateX(-50%);
-        min-width: 190px;
-        padding: 10px 16px;
-        border-radius: 999px;
-        background: rgba(0, 0, 0, 0.68);
+        width: min(86vw, 420px);
+        padding: 0;
+        background: transparent;
         color: #fff;
-        font: 700 16px/1.2 "Segoe UI Variable Text", "Aptos", "Segoe UI", Arial, Helvetica, sans-serif;
+        font: 500 34px/1.15 "Segoe UI Variable Text", "Aptos", "Segoe UI", Arial, Helvetica, sans-serif;
         text-align: center;
+        text-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
         pointer-events: none;
       }
 
       #target-scan-status.hidden {
         display: none;
+      }
+
+      #scan-guide {
+        position: fixed;
+        inset: 0;
+        z-index: 2147483642;
+        pointer-events: none;
+      }
+
+      #scan-guide.hidden {
+        display: none;
+      }
+
+      .scan-corner {
+        position: absolute;
+        width: min(18vw, 82px);
+        height: min(18vw, 82px);
+        border-color: rgba(174, 211, 255, 0.96);
+        filter: drop-shadow(0 0 5px rgba(84, 148, 230, 0.26));
+      }
+
+      .scan-corner.tl {
+        left: 7vw;
+        top: 18vh;
+        border-left: 9px solid;
+        border-top: 9px solid;
+        border-radius: 18px 0 0 0;
+      }
+
+      .scan-corner.tr {
+        right: 7vw;
+        top: 18vh;
+        border-right: 9px solid;
+        border-top: 9px solid;
+        border-radius: 0 18px 0 0;
+      }
+
+      .scan-corner.bl {
+        left: 7vw;
+        bottom: 20vh;
+        border-left: 9px solid;
+        border-bottom: 9px solid;
+        border-radius: 0 0 0 18px;
+      }
+
+      .scan-corner.br {
+        right: 7vw;
+        bottom: 20vh;
+        border-right: 9px solid;
+        border-bottom: 9px solid;
+        border-radius: 0 0 18px 0;
+      }
+
+      .scan-line {
+        position: absolute;
+        left: 13vw;
+        right: 13vw;
+        top: 46vh;
+        height: 7px;
+        border-radius: 999px;
+        background: linear-gradient(90deg, rgba(64, 173, 210, 0.7), rgba(26, 190, 140, 0.92), rgba(64, 173, 210, 0.7));
+        box-shadow: 0 0 12px rgba(26, 190, 140, 0.28);
+        animation: scan-line-pulse 1.35s ease-in-out infinite;
+      }
+
+      .scan-guide-text {
+        position: absolute;
+        left: 50%;
+        top: 61vh;
+        transform: translateX(-50%);
+        width: min(86vw, 560px);
+        color: #fff;
+        font: 700 22px/1.25 "Segoe UI Variable Text", "Aptos", "Segoe UI", Arial, Helvetica, sans-serif;
+        text-align: center;
+        text-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
+      }
+
+      .scan-version {
+        position: absolute;
+        left: 50%;
+        bottom: calc(30px + env(safe-area-inset-bottom, 0px));
+        transform: translateX(-50%);
+        color: rgba(255, 255, 255, 0.86);
+        font: 700 14px/1 "Segoe UI Variable Text", "Aptos", "Segoe UI", Arial, Helvetica, sans-serif;
+        text-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
+      }
+
+      @keyframes scan-line-pulse {
+        0%, 100% { opacity: 0.62; transform: scaleX(0.98); }
+        50% { opacity: 1; transform: scaleX(1.02); }
       }
 
       #name-badge {
@@ -378,17 +468,17 @@
         justify-content: center;
         gap: 0.42em;
         width: min(72vw, 360px);
-        color: #8f2020;
+        color: #fff;
         font-family: Georgia, "Times New Roman", serif;
         font-size: clamp(25px, 6.2vw, 34px);
         font-weight: 700;
-        line-height: 1.02;
+        line-height: 1.16;
         letter-spacing: 0;
-        -webkit-text-stroke: 1px rgba(255, 255, 255, 0.82);
+        -webkit-text-stroke: 1.7px rgba(0, 0, 0, 0.96);
         paint-order: stroke fill;
         text-shadow:
-          0 1px 0 rgba(255, 255, 255, 0.6),
-          0 0 8px rgba(255, 255, 255, 0.35);
+          0 2px 0 rgba(0, 0, 0, 0.72),
+          0 0 10px rgba(0, 0, 0, 0.45);
       }
 
       @keyframes postcard-fly-in {
@@ -429,9 +519,9 @@
 
       #complete-overlay {
         background:
-          radial-gradient(circle at 22% 18%, rgba(255, 219, 133, 0.3), transparent 26%),
-          radial-gradient(circle at 82% 8%, rgba(255, 255, 255, 0.22), transparent 24%),
-          linear-gradient(180deg, #0e5a4a 0%, #10352d 45%, #56151c 100%);
+          radial-gradient(circle at 26% 18%, rgba(255, 255, 255, 0.92), transparent 30%),
+          radial-gradient(circle at 80% 12%, rgba(255, 248, 220, 0.78), transparent 32%),
+          linear-gradient(180deg, #f8fffb 0%, #fff8e8 52%, #fff0ed 100%);
       }
 
       .complete-card {
@@ -562,8 +652,21 @@
     if (!scanStatus) {
       scanStatus = document.createElement('div');
       scanStatus.id = 'target-scan-status';
-      scanStatus.textContent = 'Scan target 1-5';
+      scanStatus.textContent = 'Scanning...';
       document.body.appendChild(scanStatus);
+    }
+
+    if (!scanGuide) {
+      scanGuide = document.createElement('div');
+      scanGuide.id = 'scan-guide';
+      scanGuide.innerHTML =         '<div class="scan-corner tl"></div>' +
+        '<div class="scan-corner tr"></div>' +
+        '<div class="scan-corner bl"></div>' +
+        '<div class="scan-corner br"></div>' +
+        '<div class="scan-line"></div>' +
+        '<div class="scan-guide-text">Place the object inside the frame.</div>' +
+        '<div class="scan-version">1.0.21</div>';
+      document.body.appendChild(scanGuide);
     }
 
     refreshNameBadge();
@@ -594,7 +697,7 @@
     refreshNameBadge();
     unlockSpeech();
     showScanStatus();
-    setScanStatus('Scan target 1-5');
+    setScanStatus('Scanning...');
     if (cameraStarted) {
       hideLoadingOverlay();
     } else {
@@ -622,10 +725,12 @@
 
   function hideScanStatus() {
     if (scanStatus) scanStatus.classList.add('hidden');
+    if (scanGuide) scanGuide.classList.add('hidden');
   }
 
   function showScanStatus() {
     if (scanStatus) scanStatus.classList.remove('hidden');
+    if (scanGuide) scanGuide.classList.remove('hidden');
   }
 
   function startApp() {
@@ -680,7 +785,7 @@
           waitingForCameraReady = false;
           hideLoadingOverlay();
           showScanStatus();
-          setScanStatus(state.childName ? 'Scan target 1-5' : 'Set name first');
+          setScanStatus(state.childName ? 'Scanning...' : 'Set name first');
         },
         listeners: [
           {
@@ -690,13 +795,13 @@
           {
             event: 'reality.imageupdated',
             process: ({ detail }) => {
-              if (!state.experienceStarted && detail && detail.name) setScanStatus(`Tracking: ${detail.name}`);
+              if (!state.experienceStarted) setScanStatus('Scanning...');
             },
           },
           {
             event: 'reality.imagelost',
             process: () => {
-              if (!state.experienceStarted) setScanStatus(state.childName ? 'Scan target 1-5' : 'Set name first');
+              if (!state.experienceStarted) setScanStatus(state.childName ? 'Scanning...' : 'Set name first');
             },
           },
         ],
@@ -942,7 +1047,7 @@
 
     speakIntro();
 
-    playIntroLottieOnce().then(() => {
+    playIntroLottieOnce(() => {
       if (!state.experienceStarted || state.flowToken !== flowToken) return;
       finishSpeechStep({ cancelSpeech: false });
     });
@@ -1075,8 +1180,20 @@
     }));
   }
 
-  function playIntroLottieOnce() {
-    if (introLottiePlayed) return Promise.resolve();
+  function playIntroLottieOnce(onRevealPostcard) {
+    const revealPostcard = (() => {
+      let revealed = false;
+      return () => {
+        if (revealed) return;
+        revealed = true;
+        if (typeof onRevealPostcard === 'function') onRevealPostcard();
+      };
+    })();
+
+    if (introLottiePlayed) {
+      setTimeout(revealPostcard, 0);
+      return Promise.resolve();
+    }
     introLottiePlayed = true;
     if (introLottieOverlay) introLottieOverlay.classList.remove('hidden');
     return ensureIntroLottie().then((animation) => new Promise((resolve) => {
@@ -1084,6 +1201,7 @@
       const finish = () => {
         if (finished) return;
         finished = true;
+        revealPostcard();
         animation.removeEventListener('complete', finish);
         animation.pause();
         if (introLottieOverlay) introLottieOverlay.classList.add('hidden');
@@ -1096,13 +1214,15 @@
       requestAnimationFrame(() => animation.play());
       const frameRate = Number(animation.frameRate || 0);
       const totalFrames = Number(animation.totalFrames || 0);
-      const earlyFinishMs = frameRate > 0 && totalFrames > 0
-        ? Math.max(0, Math.round((totalFrames / frameRate) * 1000) - 500)
-        : 4700;
-      setTimeout(finish, earlyFinishMs);
+      const totalMs = frameRate > 0 && totalFrames > 0
+        ? Math.round((totalFrames / frameRate) * 1000)
+        : 5200;
+      setTimeout(revealPostcard, Math.max(0, totalMs - 500));
+      setTimeout(finish, totalMs + 120);
     })).catch((error) => {
       console.warn('[Christmas AR] intro lottie failed:', error);
       if (introLottieOverlay) introLottieOverlay.classList.add('hidden');
+      revealPostcard();
     });
   }
 
@@ -1270,7 +1390,7 @@
     state.videoPlaying = false;
     state.santaMode = 'hidden';
     showScanStatus();
-    setScanStatus('Scan target 1-5');
+    setScanStatus('Scanning...');
   }
 
   installStyles();
