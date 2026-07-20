@@ -35,6 +35,7 @@
   let bootRequested = false;
   let cameraWaitToken = 0;
   let threeReady = false;
+  let threeInitPromise = null;
   let renderer;
   let scene;
   let camera;
@@ -806,7 +807,7 @@
     try {
       installStyles();
       ensureUi();
-      await initThree();
+      startThreeInBackground();
       const imageTargetData = await loadImageTargets();
       if (!window.XR8 || !window.XR8.XrController) {
         window.addEventListener('xrloaded', configureImageTargets, { once: true });
@@ -868,6 +869,16 @@
     else window.addEventListener('xrloaded', configureImageTargets, { once: true });
   }
 
+  function startThreeInBackground() {
+    if (threeReady || threeInitPromise) return;
+    threeInitPromise = initThree()
+      .catch((error) => {
+        console.warn('[Christmas AR] Three.js background init failed:', error);
+      })
+      .finally(() => {
+        threeInitPromise = null;
+      });
+  }
   async function initThree() {
     if (threeReady) return;
     const THREE = await import('https://esm.sh/three@0.161.0');
