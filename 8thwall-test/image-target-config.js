@@ -554,6 +554,9 @@
       postcardButton.addEventListener('click', openPostcard);
       christmasVideo.addEventListener('ended', showComplete);
       document.getElementById('restart-button').addEventListener('click', restartExperience);
+      ensureCompleteHeaderLottie().catch((error) => {
+        console.warn('[Christmas AR] complete lottie preload failed:', error);
+      });
     }
 
     if (!scanStatus) {
@@ -1091,7 +1094,12 @@
       animation.goToAndStop(0, true);
       animation.addEventListener('complete', finish);
       requestAnimationFrame(() => animation.play());
-      setTimeout(finish, 5200);
+      const frameRate = Number(animation.frameRate || 0);
+      const totalFrames = Number(animation.totalFrames || 0);
+      const earlyFinishMs = frameRate > 0 && totalFrames > 0
+        ? Math.max(0, Math.round((totalFrames / frameRate) * 1000) - 500)
+        : 4700;
+      setTimeout(finish, earlyFinishMs);
     })).catch((error) => {
       console.warn('[Christmas AR] intro lottie failed:', error);
       if (introLottieOverlay) introLottieOverlay.classList.add('hidden');
@@ -1106,20 +1114,47 @@
     introLottieAnimation.goToAndStop(0, true);
   }
 
-  function playCompleteHeaderLottie() {
-    if (!completeLottieContainer) return;
-    loadLottieRuntime().then((lottie) => {
-      if (completeLottieAnimation) {
-        completeLottieAnimation.goToAndPlay(0, true);
-        return;
-      }
+  function ensureCompleteHeaderLottie() {
+    if (!completeLottieContainer) return Promise.resolve(null);
+    if (completeLottieAnimation) return Promise.resolve(completeLottieAnimation);
+    return loadLottieRuntime().then((lottie) => new Promise((resolve, reject) => {
       completeLottieAnimation = lottie.loadAnimation({
         container: completeLottieContainer,
         renderer: 'svg',
         loop: true,
-        autoplay: true,
+        autoplay: false,
         path: './assets/merry-christmas-header.json?v=completion-header-lottie-20260720',
       });
+      let settled = false;
+      let readyTimer;
+      const ready = () => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(readyTimer);
+        completeLottieAnimation.removeEventListener('DOMLoaded', ready);
+        completeLottieAnimation.removeEventListener('data_failed', failed);
+        completeLottieAnimation.goToAndStop(0, true);
+        resolve(completeLottieAnimation);
+      };
+      const failed = () => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(readyTimer);
+        completeLottieAnimation.removeEventListener('DOMLoaded', ready);
+        completeLottieAnimation.removeEventListener('data_failed', failed);
+        reject(new Error('complete lottie data failed'));
+      };
+      completeLottieAnimation.addEventListener('DOMLoaded', ready);
+      completeLottieAnimation.addEventListener('data_failed', failed);
+      readyTimer = setTimeout(ready, 1800);
+    }));
+  }
+
+  function playCompleteHeaderLottie() {
+    ensureCompleteHeaderLottie().then((animation) => {
+      if (!animation) return;
+      animation.loop = true;
+      animation.goToAndPlay(0, true);
     }).catch((error) => {
       console.warn('[Christmas AR] complete lottie failed:', error);
     });
