@@ -171,39 +171,38 @@
         width: min(18vw, 82px);
         height: min(18vw, 82px);
         border-color: rgba(174, 211, 255, 0.96);
-        color: rgba(174, 211, 255, 0.96);
         filter: drop-shadow(0 0 5px rgba(84, 148, 230, 0.26));
       }
 
       .scan-corner.tl {
         left: 7vw;
         top: 18vh;
-        border-left: 9px solid rgba(174, 211, 255, 0.96);
-        border-top: 9px solid rgba(174, 211, 255, 0.96);
+        border-left: 9px solid;
+        border-top: 9px solid;
         border-radius: 18px 0 0 0;
       }
 
       .scan-corner.tr {
         right: 7vw;
         top: 18vh;
-        border-right: 9px solid rgba(174, 211, 255, 0.96);
-        border-top: 9px solid rgba(174, 211, 255, 0.96);
+        border-right: 9px solid;
+        border-top: 9px solid;
         border-radius: 0 18px 0 0;
       }
 
       .scan-corner.bl {
         left: 7vw;
         bottom: 20vh;
-        border-left: 9px solid rgba(174, 211, 255, 0.96);
-        border-bottom: 9px solid rgba(174, 211, 255, 0.96);
+        border-left: 9px solid;
+        border-bottom: 9px solid;
         border-radius: 0 0 0 18px;
       }
 
       .scan-corner.br {
         right: 7vw;
         bottom: 20vh;
-        border-right: 9px solid rgba(174, 211, 255, 0.96);
-        border-bottom: 9px solid rgba(174, 211, 255, 0.96);
+        border-right: 9px solid;
+        border-bottom: 9px solid;
         border-radius: 0 0 18px 0;
       }
 
@@ -224,9 +223,9 @@
         left: 50%;
         top: 61vh;
         transform: translateX(-50%);
-        width: min(92vw, 720px);
+        width: min(86vw, 560px);
         color: #fff;
-        font: 500 20px/1.25 "Segoe UI Variable Text", "Aptos", "Segoe UI", Arial, Helvetica, sans-serif;
+        font: 700 22px/1.25 "Segoe UI Variable Text", "Aptos", "Segoe UI", Arial, Helvetica, sans-serif;
         text-align: center;
         text-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
       }
