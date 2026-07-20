@@ -28,8 +28,12 @@
   let completeOverlay;
   let completeLottieContainer;
   let completeLottieAnimation;
+  let loadingText;
+  let cameraRetryButton;
 
   let appStarted = false;
+  let cameraPermissionGranted = false;
+  let cameraPermissionInFlight = false;
   let cameraStarted = false;
   let waitingForCameraReady = false;
   let bootRequested = false;
@@ -111,6 +115,21 @@
         color: #183a8f;
         font-size: 18px;
         font-weight: 700;
+        text-align: center;
+      }
+
+      #camera-permission-retry {
+        display: none;
+        border: 0;
+        border-radius: 999px;
+        padding: 13px 24px;
+        background: #183a8f;
+        color: #fff;
+        font: 800 16px/1 Arial, Helvetica, sans-serif;
+      }
+
+      #camera-permission-retry.visible {
+        display: inline-flex;
       }
 
       #christmas-flow-layer {
@@ -599,10 +618,14 @@
       loadingOverlay.innerHTML = `
         <div class="lag-loading-card">
           <img src="./assets/lag-logo.jpg" alt="LAG" />
-          <div class="lag-loading-text">Loading AR...</div>
+          <div id="lag-loading-text" class="lag-loading-text">Requesting camera access...</div>
+          <button id="camera-permission-retry" type="button">Allow camera</button>
         </div>
       `;
       document.body.appendChild(loadingOverlay);
+      loadingText = document.getElementById('lag-loading-text');
+      cameraRetryButton = document.getElementById('camera-permission-retry');
+      cameraRetryButton.addEventListener('click', () => requestCameraPermissionGate(true));
     }
 
     if (!flowLayer) {
@@ -694,7 +717,7 @@
     }
 
     refreshNameBadge();
-    if (!state.childName) showNameGate(false);
+    if (!state.childName && cameraPermissionGranted && cameraStarted) showNameGate(false);
   }
 
   function refreshNameBadge() {
@@ -723,7 +746,8 @@
     refreshNameBadge();
     unlockSpeech();
     waitForCameraReady();
-    bootAr();
+    if (cameraPermissionGranted) bootAr();
+    else requestCameraPermissionGate(true);
     if (cameraStarted) {
       waitingForCameraReady = false;
       hideLoadingOverlay();
@@ -744,12 +768,66 @@
     if (loadingOverlay) loadingOverlay.classList.remove('hidden');
   }
 
+  function setLoadingMessage(text) {
+    ensureUi();
+    if (loadingText) loadingText.textContent = text;
+  }
+
+  function setCameraRetryVisible(visible) {
+    ensureUi();
+    if (cameraRetryButton) cameraRetryButton.classList.toggle('visible', Boolean(visible));
+  }
+
+  function cameraErrorText(error) {
+    if (!error) return 'Camera access is required.';
+    if (error.name === 'NotAllowedError' || error.name === 'SecurityError') return 'Camera permission is required. Tap Allow camera and choose Allow.';
+    if (error.name === 'NotFoundError' || error.name === 'DevicesNotFoundError') return 'No camera was found on this device.';
+    if (error.name === 'NotReadableError' || error.name === 'TrackStartError') return 'The camera is busy. Close other camera apps and try again.';
+    return 'Camera access failed. Tap Allow camera to try again.';
+  }
+
+  async function requestCameraPermissionGate(fromUserGesture) {
+    ensureUi();
+    if (cameraPermissionGranted) {
+      bootAr();
+      return;
+    }
+    if (cameraPermissionInFlight) return;
+    cameraPermissionInFlight = true;
+    showLoadingOverlay();
+    hideScanStatus();
+    setCameraRetryVisible(false);
+    setLoadingMessage(fromUserGesture ? 'Requesting camera access...' : 'Please allow camera access to start AR.');
+    try {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error('getUserMedia unavailable');
+      }
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false });
+      stream.getTracks().forEach((track) => track.stop());
+      cameraPermissionGranted = true;
+      setCameraRetryVisible(false);
+      setLoadingMessage('Starting AR camera...');
+      bootAr();
+    } catch (error) {
+      console.warn('[Christmas AR] camera permission gate failed:', error);
+      cameraPermissionGranted = false;
+      setLoadingMessage(cameraErrorText(error));
+      setCameraRetryVisible(true);
+    } finally {
+      cameraPermissionInFlight = false;
+    }
+  }
+
   function waitForCameraReady() {
     waitingForCameraReady = true;
     showLoadingOverlay();
     const token = ++cameraWaitToken;
     setTimeout(() => {
       if (!waitingForCameraReady || token !== cameraWaitToken) return;
+      if (!cameraStarted) {
+        setLoadingMessage('Starting AR camera...');
+        return;
+      }
       waitingForCameraReady = false;
       hideLoadingOverlay();
       showScanStatus();
@@ -832,6 +910,7 @@
             setScanStatus('Scanning...');
           } else {
             hideScanStatus();
+            showNameGate(false);
           }
         },
         listeners: [
@@ -857,8 +936,10 @@
       startApp();
     } catch (error) {
       console.error('[Christmas AR] image target configuration failed:', error);
-      setScanStatus(`Image target setup failed: ${errorText(error)}`);
-      setTimeout(hideLoadingOverlay, 1200);
+      bootRequested = false;
+      setLoadingMessage(`AR setup failed: ${errorText(error)}`);
+      setCameraRetryVisible(true);
+      hideScanStatus();
     }
   }
 
@@ -1459,15 +1540,9 @@
 
   installStyles();
   ensureUi();
-  setTimeout(() => {
-    if (!waitingForCameraReady) hideLoadingOverlay();
-  }, 9000);
-  bootAr();
-  if (!state.childName) {
-    hideLoadingOverlay();
-    hideScanStatus();
-    showNameGate(false);
-  }
+  showLoadingOverlay();
+  hideScanStatus();
+  requestCameraPermissionGate(false);
 })();
 
 
