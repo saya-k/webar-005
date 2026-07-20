@@ -138,14 +138,14 @@
       #target-scan-status {
         position: fixed;
         left: 50%;
-        bottom: calc(70px + env(safe-area-inset-bottom, 0px));
+        bottom: calc(58px + env(safe-area-inset-bottom, 0px));
         z-index: 2147483646;
         transform: translateX(-50%);
-        width: min(86vw, 420px);
+        width: min(76vw, 340px);
         padding: 0;
         background: transparent;
         color: #fff;
-        font: 500 28px/1.15 "Segoe UI Variable Text", "Aptos", "Segoe UI", Arial, Helvetica, sans-serif;
+        font: 500 24px/1.15 "Segoe UI Variable Text", "Aptos", "Segoe UI", Arial, Helvetica, sans-serif;
         text-align: center;
         text-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
         pointer-events: none;
@@ -168,8 +168,8 @@
 
       .scan-corner {
         position: absolute;
-        width: min(15vw, 66px);
-        height: min(15vw, 66px);
+        width: min(11vw, 48px);
+        height: min(11vw, 48px);
         border-color: rgba(174, 211, 255, 0.96);
         color: rgba(174, 211, 255, 0.96);
         filter: drop-shadow(0 0 5px rgba(84, 148, 230, 0.26));
@@ -178,33 +178,33 @@
       .scan-corner.tl {
         left: 7vw;
         top: 18vh;
-        border-left: 7px solid rgba(174, 211, 255, 0.96);
-        border-top: 7px solid rgba(174, 211, 255, 0.96);
-        border-radius: 18px 0 0 0;
+        border-left: 5px solid rgba(174, 211, 255, 0.96);
+        border-top: 5px solid rgba(174, 211, 255, 0.96);
+        border-radius: 14px 0 0 0;
       }
 
       .scan-corner.tr {
         right: 7vw;
         top: 18vh;
-        border-right: 7px solid rgba(174, 211, 255, 0.96);
-        border-top: 7px solid rgba(174, 211, 255, 0.96);
-        border-radius: 0 18px 0 0;
+        border-right: 5px solid rgba(174, 211, 255, 0.96);
+        border-top: 5px solid rgba(174, 211, 255, 0.96);
+        border-radius: 0 14px 0 0;
       }
 
       .scan-corner.bl {
         left: 7vw;
-        bottom: 23vh;
-        border-left: 7px solid rgba(174, 211, 255, 0.96);
-        border-bottom: 7px solid rgba(174, 211, 255, 0.96);
-        border-radius: 0 0 0 18px;
+        bottom: 25vh;
+        border-left: 5px solid rgba(174, 211, 255, 0.96);
+        border-bottom: 5px solid rgba(174, 211, 255, 0.96);
+        border-radius: 0 0 0 14px;
       }
 
       .scan-corner.br {
         right: 7vw;
-        bottom: 23vh;
-        border-right: 7px solid rgba(174, 211, 255, 0.96);
-        border-bottom: 7px solid rgba(174, 211, 255, 0.96);
-        border-radius: 0 0 18px 0;
+        bottom: 25vh;
+        border-right: 5px solid rgba(174, 211, 255, 0.96);
+        border-bottom: 5px solid rgba(174, 211, 255, 0.96);
+        border-radius: 0 0 14px 0;
       }
 
       .scan-line {
@@ -212,7 +212,7 @@
         left: 13vw;
         right: 13vw;
         top: 45vh;
-        height: 5px;
+        height: 4px;
         border-radius: 999px;
         background: linear-gradient(90deg, rgba(64, 173, 210, 0.7), rgba(26, 190, 140, 0.92), rgba(64, 173, 210, 0.7));
         box-shadow: 0 0 12px rgba(26, 190, 140, 0.28);
@@ -222,11 +222,11 @@
       .scan-guide-text {
         position: absolute;
         left: 50%;
-        top: 64vh;
+        top: 63vh;
         transform: translateX(-50%);
-        width: min(88vw, 620px);
+        width: min(80vw, 460px);
         color: #fff;
-        font: 500 18px/1.25 "Segoe UI Variable Text", "Aptos", "Segoe UI", Arial, Helvetica, sans-serif;
+        font: 500 15px/1.25 "Segoe UI Variable Text", "Aptos", "Segoe UI", Arial, Helvetica, sans-serif;
         text-align: center;
         text-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
       }
@@ -237,7 +237,7 @@
         bottom: calc(30px + env(safe-area-inset-bottom, 0px));
         transform: translateX(-50%);
         color: rgba(255, 255, 255, 0.86);
-        font: 700 13px/1 "Segoe UI Variable Text", "Aptos", "Segoe UI", Arial, Helvetica, sans-serif;
+        font: 700 11px/1 "Segoe UI Variable Text", "Aptos", "Segoe UI", Arial, Helvetica, sans-serif;
         text-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
       }
 
@@ -1409,6 +1409,7 @@
   if (window.XR8) configureImageTargets();
   else window.addEventListener('xrloaded', configureImageTargets, { once: true });
 })();
+
 
 
 
