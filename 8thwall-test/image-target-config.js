@@ -145,7 +145,7 @@
         padding: 0;
         background: transparent;
         color: #fff;
-        font: 500 34px/1.15 "Segoe UI Variable Text", "Aptos", "Segoe UI", Arial, Helvetica, sans-serif;
+        font: 500 28px/1.15 "Segoe UI Variable Text", "Aptos", "Segoe UI", Arial, Helvetica, sans-serif;
         text-align: center;
         text-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
         pointer-events: none;
@@ -168,8 +168,8 @@
 
       .scan-corner {
         position: absolute;
-        width: min(18vw, 82px);
-        height: min(18vw, 82px);
+        width: min(15vw, 66px);
+        height: min(15vw, 66px);
         border-color: rgba(174, 211, 255, 0.96);
         color: rgba(174, 211, 255, 0.96);
         filter: drop-shadow(0 0 5px rgba(84, 148, 230, 0.26));
@@ -178,32 +178,32 @@
       .scan-corner.tl {
         left: 7vw;
         top: 18vh;
-        border-left: 9px solid rgba(174, 211, 255, 0.96);
-        border-top: 9px solid rgba(174, 211, 255, 0.96);
+        border-left: 7px solid rgba(174, 211, 255, 0.96);
+        border-top: 7px solid rgba(174, 211, 255, 0.96);
         border-radius: 18px 0 0 0;
       }
 
       .scan-corner.tr {
         right: 7vw;
         top: 18vh;
-        border-right: 9px solid rgba(174, 211, 255, 0.96);
-        border-top: 9px solid rgba(174, 211, 255, 0.96);
+        border-right: 7px solid rgba(174, 211, 255, 0.96);
+        border-top: 7px solid rgba(174, 211, 255, 0.96);
         border-radius: 0 18px 0 0;
       }
 
       .scan-corner.bl {
         left: 7vw;
-        bottom: 20vh;
-        border-left: 9px solid rgba(174, 211, 255, 0.96);
-        border-bottom: 9px solid rgba(174, 211, 255, 0.96);
+        bottom: 23vh;
+        border-left: 7px solid rgba(174, 211, 255, 0.96);
+        border-bottom: 7px solid rgba(174, 211, 255, 0.96);
         border-radius: 0 0 0 18px;
       }
 
       .scan-corner.br {
         right: 7vw;
-        bottom: 20vh;
-        border-right: 9px solid rgba(174, 211, 255, 0.96);
-        border-bottom: 9px solid rgba(174, 211, 255, 0.96);
+        bottom: 23vh;
+        border-right: 7px solid rgba(174, 211, 255, 0.96);
+        border-bottom: 7px solid rgba(174, 211, 255, 0.96);
         border-radius: 0 0 18px 0;
       }
 
@@ -211,8 +211,8 @@
         position: absolute;
         left: 13vw;
         right: 13vw;
-        top: 46vh;
-        height: 7px;
+        top: 45vh;
+        height: 5px;
         border-radius: 999px;
         background: linear-gradient(90deg, rgba(64, 173, 210, 0.7), rgba(26, 190, 140, 0.92), rgba(64, 173, 210, 0.7));
         box-shadow: 0 0 12px rgba(26, 190, 140, 0.28);
@@ -222,11 +222,11 @@
       .scan-guide-text {
         position: absolute;
         left: 50%;
-        top: 61vh;
+        top: 64vh;
         transform: translateX(-50%);
-        width: min(92vw, 720px);
+        width: min(88vw, 620px);
         color: #fff;
-        font: 500 20px/1.25 "Segoe UI Variable Text", "Aptos", "Segoe UI", Arial, Helvetica, sans-serif;
+        font: 500 18px/1.25 "Segoe UI Variable Text", "Aptos", "Segoe UI", Arial, Helvetica, sans-serif;
         text-align: center;
         text-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
       }
@@ -237,7 +237,7 @@
         bottom: calc(30px + env(safe-area-inset-bottom, 0px));
         transform: translateX(-50%);
         color: rgba(255, 255, 255, 0.86);
-        font: 700 14px/1 "Segoe UI Variable Text", "Aptos", "Segoe UI", Arial, Helvetica, sans-serif;
+        font: 700 13px/1 "Segoe UI Variable Text", "Aptos", "Segoe UI", Arial, Helvetica, sans-serif;
         text-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
       }
 
@@ -1409,6 +1409,7 @@
   if (window.XR8) configureImageTargets();
   else window.addEventListener('xrloaded', configureImageTargets, { once: true });
 })();
+
 
 
 
