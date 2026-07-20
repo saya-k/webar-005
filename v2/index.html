@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en" translate="no">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <meta name="google" content="notranslate">
+  <title>Christmas AR v2</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <main id="app">
+    <video id="cameraVideo" autoplay muted playsinline webkit-playsinline></video>
+    <canvas id="threeCanvas" aria-label="Santa AR scene"></canvas>
+
+    <section id="nameGate" class="gate">
+      <div class="name-card">
+        <p class="eyebrow">Christmas AR</p>
+        <h1>Santa needs a name</h1>
+        <p class="help">Enter the child's name before starting the camera experience.</p>
+        <label>
+          <span>Child name</span>
+          <input id="childNameInput" maxlength="24" autocomplete="name" placeholder="Michael">
+        </label>
+        <p id="nameError" class="error" role="alert"></p>
+        <button id="saveNameButton" class="primary">Continue</button>
+      </div>
+    </section>
+
+    <button id="nameBadge" class="name-badge" type="button">Name</button>
+
+    <section id="startGate" class="gate hidden">
+      <div class="start-card">
+        <h2>Camera access is required</h2>
+        <p>This augmented reality experience uses your camera to scan the Christmas ornament.</p>
+        <button id="startButton" class="primary">Tap to start</button>
+      </div>
+    </section>
+
+    <section id="scanHud" class="scan-hud hidden" aria-live="polite">
+      <div class="corner top-left"></div>
+      <div class="corner top-right"></div>
+      <div class="corner bottom-left"></div>
+      <div class="corner bottom-right"></div>
+      <p id="scanText">Place the object inside the frame.</p>
+      <p id="scanStatus">Scanning</p>
+      <div class="scan-line"></div>
+      <div id="targetDebug" class="target-debug">
+        <span>Test scan:</span>
+      </div>
+    </section>
+
+    <button id="postcardButton" class="postcard hidden" type="button" aria-label="Open Santa's postcard">
+      <span>Open Santa's postcard</span>
+    </button>
+
+    <section id="videoOverlay" class="video-overlay hidden">
+      <video id="christmasVideo" playsinline webkit-playsinline preload="metadata"></video>
+    </section>
+
+    <section id="completeOverlay" class="complete-overlay hidden">
+      <div class="complete-card">
+        <h2>Merry Christmas!</h2>
+        <button id="restartButton" class="primary">Restart</button>
+      </div>
+    </section>
+  </main>
+
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://unpkg.com/three@0.161.0/build/three.module.js"
+      }
+    }
+  </script>
+  <script type="module" src="./src/app.js"></script>
+</body>
+</html>
+
+

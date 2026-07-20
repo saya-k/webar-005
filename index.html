@@ -1,0 +1,1404 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content='width=device-width, height=device-height, initial-scale=1.0, minimum-scale=1.0, user-scalable=no, shrink-to-fit=yes'>
+    <title>Unity WebGL Player | TestImageAR</title>
+    <link rel="stylesheet" href="TemplateData/style.css">
+    <script>
+        (function () {
+            function setAppViewportSize() {
+                var viewport = window.visualViewport;
+                var width = Math.round((viewport && viewport.width) || window.innerWidth || document.documentElement.clientWidth || screen.width);
+                var height = Math.round((viewport && viewport.height) || window.innerHeight || document.documentElement.clientHeight || screen.height);
+                document.documentElement.style.setProperty("--app-width", width + "px");
+                document.documentElement.style.setProperty("--app-height", height + "px");
+            }
+            window.__setAppViewportSize = setAppViewportSize;
+            setAppViewportSize();
+        })();
+    </script>
+    <style>
+        html{
+            width: 100%;
+            height: 100%;
+            min-height: -webkit-fill-available;
+            overflow: hidden;
+            background: #000;
+        }
+        body {
+            margin: 0;
+            padding: 0;
+            position: fixed;
+            inset: 0;
+            width: var(--app-width, 100vw);
+            height: var(--app-height, 100vh);
+            min-height: var(--app-height, 100vh);
+            overflow: hidden;
+            overscroll-behavior: none;
+            touch-action: none;
+            background: #000;
+        }
+        #unity-container,
+        #unity-canvas,
+        #video-canvas {
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: var(--app-width, 100vw);
+            height: var(--app-height, 100vh);
+            overflow: hidden;
+        }
+        #unity-loading-bar {
+            position: fixed !important;
+            left: 50% !important;
+            top: 50% !important;
+            transform: translate(-50%, -50%) !important;
+            z-index: 10001;
+        }
+        .ctaDiv {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: absolute;
+            left: 0;
+            right: 0;
+            top: 0;
+            bottom: 0;
+            background: #fffa;
+            z-index: 99;
+        }
+        .startARMessage {
+            text-align: center;
+            width: min(78vw, 420px);
+            line-height: 1.45;
+            margin: 0 0 16px;
+        }
+        .startARMessage .zh {
+            display: block;
+            margin-top: 8px;
+        }
+        #startARButton {
+            min-width: 132px;
+            min-height: 38px;
+            padding: 8px 18px;
+            border: 0;
+            border-radius: 999px;
+            background: #e6e6e6;
+            color: #222;
+            font-size: 14px;
+        }
+        #trackedHtmlVideoOverlay {
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: var(--app-height, 100vh);
+            background: #000;
+            z-index: 10000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+        #trackedHtmlVideoOverlay video {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            transform: scale(1);
+            transform-origin: center center;
+            background: #000;
+        }
+        #trackedHtmlVideoMessage {
+            position: absolute;
+            left: 24px;
+            right: 24px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #fff;
+            text-align: center;
+            line-height: 1.5;
+            display: none;
+        }
+        #trackedHtmlVideoButton {
+            margin-top: 14px;
+            min-width: 132px;
+            min-height: 38px;
+            padding: 8px 18px;
+            border: 0;
+            border-radius: 999px;
+            background: #fff;
+            color: #111;
+            font-size: 14px;
+        }
+        #santaEnvelopeButton {
+            display: none;
+            margin: 16px auto 0;
+            width: 116px;
+            height: 82px;
+            border: 0;
+            border-radius: 8px;
+            background: linear-gradient(145deg, #fff8e6 0%, #f4dca4 100%);
+            color: #7f1d1d;
+            box-shadow: 0 10px 28px rgba(0, 0, 0, 0.34);
+            position: relative;
+        }
+        #santaEnvelopeButton::before,
+        #santaEnvelopeButton::after {
+            content: "";
+            position: absolute;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            height: 100%;
+            border-radius: 8px;
+            pointer-events: none;
+        }
+        #santaEnvelopeButton::before {
+            background: linear-gradient(35deg, transparent 49%, rgba(127, 29, 29, 0.22) 50%, transparent 51%),
+                        linear-gradient(-35deg, transparent 49%, rgba(127, 29, 29, 0.22) 50%, transparent 51%);
+        }
+        #santaEnvelopeButton::after {
+            border: 2px solid rgba(127, 29, 29, 0.34);
+            box-sizing: border-box;
+        }
+        #santaEnvelopeButton.is-opening {
+            animation: santaEnvelopeOpen 0.62s ease forwards;
+        }
+        #santaEnvelopeButton.is-opening::before {
+            transform-origin: top center;
+            animation: santaEnvelopeFlap 0.62s ease forwards;
+        }
+        @keyframes santaEnvelopeOpen {
+            0% { transform: scale(1) translateY(0); opacity: 1; }
+            45% { transform: scale(1.08) translateY(-6px); opacity: 1; }
+            100% { transform: scale(0.84) translateY(-18px); opacity: 0; }
+        }
+        @keyframes santaEnvelopeFlap {
+            0% { transform: rotateX(0deg); }
+            100% { transform: rotateX(72deg); }
+        }
+        #santaEnvelopeButton span {
+            position: absolute;
+            left: 0;
+            right: 0;
+            bottom: -28px;
+            color: #fff;
+            font-size: 14px;
+            text-align: center;
+            white-space: nowrap;
+        }
+        #parentNameButton {
+            position: fixed;
+            right: 12px;
+            top: calc(12px + env(safe-area-inset-top));
+            z-index: 90;
+            min-height: 34px;
+            max-width: min(58vw, 220px);
+            padding: 7px 13px;
+            border: 1px solid rgba(255, 255, 255, 0.55);
+            border-radius: 999px;
+            background: rgba(0, 0, 0, 0.58);
+            color: #fff;
+            font-size: 13px;
+            line-height: 1.2;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.22);
+            pointer-events: auto;
+        }
+        #parentNameDiv.is-required {
+            background: rgba(0, 0, 0, 0.68) !important;
+            z-index: 10003 !important;
+        }
+        #parentNameDiv.is-required .parentNameCard {
+            border: 1px solid rgba(255, 255, 255, 0.35);
+        }
+        .parentNameCard {
+            width: min(86vw, 360px);
+            padding: 18px;
+            border-radius: 8px;
+            background: #fff;
+            color: #1b1b1b;
+            box-shadow: 0 8px 28px rgba(0, 0, 0, 0.28);
+        }
+        .parentNameTitle {
+            margin: 0 0 8px;
+            font-size: 18px;
+            font-weight: 700;
+        }
+        .parentNameHelp {
+            margin: 0 0 14px;
+            color: #555;
+            font-size: 13px;
+            line-height: 1.45;
+        }
+        #childNameInput {
+            box-sizing: border-box;
+            width: 100%;
+            min-height: 42px;
+            padding: 9px 11px;
+            border: 1px solid #bbb;
+            border-radius: 6px;
+            font-size: 16px;
+        }
+        #childNameError {
+            display: none;
+            margin: 9px 0 0;
+            color: #b31824;
+            font-size: 12px;
+            line-height: 1.35;
+        }
+        #childNameInput.has-error {
+            border-color: #b31824;
+            box-shadow: 0 0 0 2px rgba(179, 24, 36, 0.16);
+        }
+        .parentNameActions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 14px;
+        }
+        .parentNameActions button {
+            min-height: 36px;
+            padding: 7px 14px;
+            border: 0;
+            border-radius: 999px;
+            font-size: 14px;
+        }
+        #cancelChildNameButton {
+            background: #e7e7e7;
+            color: #222;
+        }
+        #saveChildNameButton {
+            background: #b31824;
+            color: #fff;
+        }
+    </style>
+</head>
+<body>
+    <!--IMAGETARGETS-->
+		<imagetarget id='Christmas snowflake' src='targets/Christmas%20snowflake.png'></imagetarget>
+		<imagetarget id='1' src='targets/1.png'></imagetarget>
+		<imagetarget id='2' src='targets/2.png'></imagetarget>
+		<imagetarget id='3' src='targets/3.png'></imagetarget>
+		<imagetarget id='4' src='targets/4.jpg'></imagetarget>
+		<imagetarget id='5' src='targets/5.jpg'></imagetarget>
+
+    <video id="webcam-video" muted autoplay playsinline webkit-playsinline style="width:1px;position:absolute"></video>
+    <!-- <video id="webcam-video" muted autoplay playsinline style="width:100%; height:100%; object-fit:cover; position:absolute"></video> -->
+    <canvas id="video-canvas" style="width:100%; height:100%; object-fit:cover; position:absolute"></canvas>
+    <div id="startARDiv" class="ctaDiv" style="display: none;">
+        <select id="chooseCamSel" style="display: none;" onchange="SelectCam()"></select>
+        <p id="startARMessage" class="startARMessage">
+            This augmented reality experience requires access to your device's camera
+            
+        </p>
+        <button id="startARButton" onclick="BeginChristmasExperience()" style="display:none">Tap to start</button>
+    </div>
+    <div id="screenshotDiv" style="display: none;" class="ctaDiv">
+        <div style="position:relative; background-color:white; padding:10px; box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.3), 0 6px 20px 0 rgba(0, 0, 0, 0.25);">
+            <img id="screenshotImg" src="" alt="screenshot" style="width:80vw; height:80vh">
+            <button onclick="document.getElementById('screenshotDiv').style.display = 'none';" style="position:absolute; transform:translateY(-100%); right:0; top:0">Close</button>
+        </div>
+    </div>
+    <div id="confirmUrlDiv" style="display: none;" class="ctaDiv">
+        <div style="position:relative; background-color:white; padding:10px; box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.3), 0 6px 20px 0 rgba(0, 0, 0, 0.25); width: 80vw; display:flex; flex-direction: column; align-items: center;">
+            <p id="confirmUrlText" style="text-align: center; width:80%; overflow: hidden; text-overflow: ellipsis;">Are you sure you want to visit url.com?</p>
+            <div>
+                <button onclick="window.open(newUrlString, '_blank').focus(); document.getElementById('confirmUrlDiv').style.display = 'none'">VISIT SITE</button>
+                <button onclick="document.getElementById('confirmUrlDiv').style.display = 'none'">GO BACK</button>
+            </div>
+        </div>
+    </div>
+    <div id="errorDiv" class="ctaDiv" style="display: none; background:#aaa">
+        <p id="errorText" style="text-align: center; width:60vw; color:white"></p>
+    </div>
+    <button id="parentNameButton" type="button" onclick="OpenParentNamePanel()" aria-label="Set child name">Set name</button>
+    <div id="parentNameDiv" class="ctaDiv" style="display: none; background: rgba(0, 0, 0, 0.35); z-index: 10002;">
+        <div class="parentNameCard">
+            <p class="parentNameTitle">Child name</p>
+            <p class="parentNameHelp">Parents can enter the child's name here. Santa will use it in the greeting after the scan.</p>
+            <input id="childNameInput" type="text" maxlength="24" autocomplete="name" placeholder="Enter child name">
+            <p id="childNameError">Please enter a child name to start.</p>
+            <div class="parentNameActions">
+                <button id="cancelChildNameButton" type="button" onclick="CloseParentNamePanel()">Cancel</button>
+                <button id="saveChildNameButton" type="button" onclick="SaveChildName()">Save</button>
+            </div>
+        </div>
+    </div>
+    <div id="trackedHtmlVideoOverlay">
+        <div id="trackedHtmlVideoMessage">
+            <div id="trackedHtmlVideoMessageText">Loading video, please wait...</div>
+            <button id="trackedHtmlVideoButton" type="button" style="display:none">Play video</button>
+            <button id="santaEnvelopeButton" type="button" aria-label="Open Santa's message"><span>Open</span></button>
+        </div>
+    </div>
+    <div id="unity-container" class="unity-mobile">
+        <canvas id="unity-canvas" style="width: 100%; height: 100%; background: #0000; z-index: -99"></canvas>
+        <div id="unity-loading-bar">
+            <div id="unity-logo"></div>
+            <div id="unity-progress-bar-empty">
+                <div id="unity-progress-bar-full"></div>
+            </div>
+        </div>
+        <canvas id="video-canvas"></canvas>
+    </div>
+    <script src="arcamera.js" type="text/javascript"></script>
+    <script src="itracker.js" type="text/javascript"></script>
+    <script src="Build/ar-圣诞.loader.js"></script>
+    <script>
+            var initialize = async() =>{
+                if (initializingExperience || trackerInitialized) {
+                    return;
+                }
+                if (!EnsureChristmasChildNameBeforeStart()) {
+                    return;
+                }
+                initializingExperience = true;
+                var unityCanvas = document.querySelector("#unity-canvas");
+                var videoCanvas = document.querySelector("#video-canvas");
+                window.arCamera = new ARCamera(unityCanvas, videoCanvas);
+                window.iTracker = new ImageTracker(arCamera);
+                try{
+                    await window.iTracker.initialize();
+                    console.log("ImageTracker initialized!");
+                }
+                catch{
+                    console.error("Failed to initialize ImageTracker. Are you missing opencv.js? " + error);
+                    ShowError("Failed to initialize the experience.");
+                    initializingExperience = false;
+                    return;
+                }
+                
+                trackerInitialized = true;
+                initializingExperience = false;
+                iTracker.WEBCAM_NAME = "Default Camera";
+                if (IsIOS()) {
+                    ShowStartARPrompt();
+                }
+                else {
+                    StartAR();
+                }
+            }
+            var container = document.querySelector("#unity-container");
+            var canvas = document.querySelector("#unity-canvas");
+            var videoCanvases = document.querySelectorAll("#video-canvas");
+            var loadingBar = document.querySelector("#unity-loading-bar");
+            var progressBarFull = document.querySelector("#unity-progress-bar-full");
+            function GetViewportHeight() {
+                return Math.round((window.visualViewport && window.visualViewport.height) || window.innerHeight || document.documentElement.clientHeight);
+            }
+            function ApplyViewportSize() {
+                var width = Math.round((window.visualViewport && window.visualViewport.width) || window.innerWidth || document.documentElement.clientWidth);
+                var height = GetViewportHeight();
+                document.documentElement.style.setProperty("--app-width", width + "px");
+                document.documentElement.style.setProperty("--app-height", height + "px");
+                document.body.style.width = width + "px";
+                document.body.style.height = height + "px";
+                document.documentElement.style.width = width + "px";
+                document.documentElement.style.height = height + "px";
+                container.style.width = width + "px";
+                container.style.height = height + "px";
+                canvas.style.width = width + "px";
+                canvas.style.height = height + "px";
+                videoCanvases.forEach((videoCanvas) => {
+                    videoCanvas.style.width = width + "px";
+                    videoCanvas.style.height = height + "px";
+                });
+                window.scrollTo(0, 0);
+            }
+            function ScheduleViewportRefresh() {
+                if (window.__setAppViewportSize) {
+                    window.__setAppViewportSize();
+                }
+                ApplyViewportSize();
+                requestAnimationFrame(ApplyViewportSize);
+                setTimeout(ApplyViewportSize, 40);
+                setTimeout(ApplyViewportSize, 100);
+                setTimeout(ApplyViewportSize, 300);
+                setTimeout(ApplyViewportSize, 500);
+                setTimeout(ApplyViewportSize, 1000);
+                setTimeout(ApplyViewportSize, 2000);
+            }
+            window.addEventListener("resize", ScheduleViewportRefresh);
+            window.addEventListener("orientationchange", ScheduleViewportRefresh);
+            window.addEventListener("load", ScheduleViewportRefresh);
+            window.addEventListener("pageshow", ScheduleViewportRefresh);
+            window.addEventListener("focus", ScheduleViewportRefresh);
+            document.addEventListener("visibilitychange", ScheduleViewportRefresh);
+            document.addEventListener("pointerdown", ScheduleViewportRefresh, { passive: true });
+            document.addEventListener("touchstart", ScheduleViewportRefresh, { passive: true });
+            if (window.visualViewport) {
+                window.visualViewport.addEventListener("resize", ScheduleViewportRefresh);
+                window.visualViewport.addEventListener("scroll", ScheduleViewportRefresh);
+            }
+            ScheduleViewportRefresh();
+            var unityStarted = false;
+            var trackerInitialized = false;
+            var initializingExperience = false;
+            var CHILD_NAME_STORAGE_KEY = "christmasChildName";
+            var childNameRequired = false;
+            function NormalizeChildName(name) {
+                return (name || "").replace(/\s+/g, " ").trim().slice(0, 24);
+            }
+            function GetChristmasSpeakableName(name) {
+                var cleanName = NormalizeChildName(name);
+                var pronunciationMap = {
+                    "gaga": "ga ga",
+                    "saya": "sah yah"
+                };
+                return cleanName.split(" ").map(function (part) {
+                    var lettersOnly = part.replace(/[^A-Za-z]/g, "");
+                    var key = lettersOnly.toLowerCase();
+                    if (pronunciationMap[key]) {
+                        return pronunciationMap[key];
+                    }
+                    if (/^[A-Za-z]+$/.test(part)) {
+                        return part.charAt(0).toUpperCase() + part.slice(1).toLowerCase();
+                    }
+                    return part;
+                }).join(" ");
+            }
+            function HasChristmasChildName() {
+                return !!(window.GetChristmasChildName && window.GetChristmasChildName());
+            }
+            window.GetChristmasChildName = function() {
+                try {
+                    return NormalizeChildName(localStorage.getItem(CHILD_NAME_STORAGE_KEY));
+                }
+                catch (err) {
+                    return "";
+                }
+            };
+            function SetChristmasChildName(name) {
+                var cleanName = NormalizeChildName(name);
+                try {
+                    if (cleanName) {
+                        localStorage.setItem(CHILD_NAME_STORAGE_KEY, cleanName);
+                    }
+                    else {
+                        localStorage.removeItem(CHILD_NAME_STORAGE_KEY);
+                    }
+                }
+                catch (err) {
+                    console.warn("Failed to save child name", err);
+                }
+                RefreshParentNameButton();
+                return cleanName;
+            }
+            function RefreshParentNameButton() {
+                var button = document.getElementById("parentNameButton");
+                if (!button) {
+                    return;
+                }
+                var name = window.GetChristmasChildName();
+                button.innerText = name ? "Name: " + name : "Set name";
+                button.title = name ? "Current name: " + name : "Set child name";
+            }
+            function SetChildNameError(visible) {
+                var input = document.getElementById("childNameInput");
+                var error = document.getElementById("childNameError");
+                if (input) {
+                    input.classList.toggle("has-error", !!visible);
+                }
+                if (error) {
+                    error.style.display = visible ? "block" : "none";
+                }
+            }
+            function OpenParentNamePanel(required) {
+                var panel = document.getElementById("parentNameDiv");
+                var input = document.getElementById("childNameInput");
+                if (!panel || !input) {
+                    return;
+                }
+                childNameRequired = !!required;
+                panel.classList.toggle("is-required", childNameRequired);
+                var title = panel.querySelector(".parentNameTitle");
+                var help = panel.querySelector(".parentNameHelp");
+                var cancel = document.getElementById("cancelChildNameButton");
+                if (title) {
+                    title.innerText = childNameRequired ? "Enter child name" : "Child name";
+                }
+                if (help) {
+                    help.innerText = childNameRequired
+                        ? "Please enter the child's name before starting. Santa will use it in the greeting."
+                        : "Parents can enter the child's name here. Santa will use it in the greeting after the scan.";
+                }
+                if (cancel) {
+                    cancel.style.display = childNameRequired ? "none" : "";
+                }
+                input.value = window.GetChristmasChildName();
+                SetChildNameError(false);
+                panel.style.display = "flex";
+                setTimeout(function () {
+                    input.focus();
+                    input.select();
+                }, 50);
+            }
+            function CloseParentNamePanel() {
+                if (childNameRequired && !HasChristmasChildName()) {
+                    SetChildNameError(true);
+                    return;
+                }
+                var panel = document.getElementById("parentNameDiv");
+                if (panel) {
+                    panel.style.display = "none";
+                    panel.classList.remove("is-required");
+                }
+                childNameRequired = false;
+                SetChildNameError(false);
+            }
+            function SaveChildName() {
+                var input = document.getElementById("childNameInput");
+                var savedName = SetChristmasChildName(input ? input.value : "");
+                if (!savedName) {
+                    SetChildNameError(true);
+                    if (input) {
+                        input.focus();
+                    }
+                    return;
+                }
+                if (input) {
+                    input.blur();
+                }
+                CloseParentNamePanel();
+                ScheduleViewportRefresh();
+                if (unityStarted) {
+                    var startDiv = document.getElementById("startARDiv");
+                    if (startDiv) {
+                        startDiv.style.display = "none";
+                    }
+                    return;
+                }
+                setTimeout(function () {
+                    ScheduleViewportRefresh();
+                    ShowStartARPrompt("Tap to start");
+                }, 220);
+            }
+            function EnsureChristmasChildNameBeforeStart() {
+                if (HasChristmasChildName()) {
+                    return true;
+                }
+                ShowStartARPrompt("Enter name first");
+                OpenParentNamePanel(true);
+                return false;
+            }
+            function InitializeParentNameEditor() {
+                RefreshParentNameButton();
+                var input = document.getElementById("childNameInput");
+                if (input) {
+                    input.addEventListener("keydown", function (event) {
+                        if (event.key === "Enter") {
+                            event.preventDefault();
+                            SaveChildName();
+                        }
+                        else if (event.key === "Escape") {
+                            event.preventDefault();
+                            CloseParentNamePanel();
+                        }
+                    });
+                }
+            }
+            InitializeParentNameEditor();
+            initialize();
+            function IsIOS() {
+                return /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+                    (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+            }
+            function WithTimeout(promise, timeoutMs) {
+                return Promise.race([
+                    promise,
+                    new Promise((resolve) => setTimeout(resolve, timeoutMs))
+                ]);
+            }
+            function ShowStartARPrompt(buttonText) {
+                var startDiv = document.getElementById("startARDiv");
+                var startButton = document.getElementById("startARButton");
+                startDiv.style.display = "flex";
+                startButton.style.display = "block";
+                startButton.disabled = !HasChristmasChildName();
+                startButton.innerText = buttonText || "Tap to start";
+            }
+            async function UnlockIOSMedia() {
+                if (!IsIOS()) {
+                    return;
+                }
+                try {
+                    var AudioContextClass = window.AudioContext || window.webkitAudioContext;
+                    if (AudioContextClass) {
+                        window.__iosAudioContext = window.__iosAudioContext || new AudioContextClass();
+                        if (window.__iosAudioContext.state === "suspended") {
+                            await WithTimeout(window.__iosAudioContext.resume(), 800);
+                        }
+                        var source = window.__iosAudioContext.createBufferSource();
+                        source.buffer = window.__iosAudioContext.createBuffer(1, 1, 22050);
+                        source.connect(window.__iosAudioContext.destination);
+                        source.start(0);
+                    }
+                }
+                catch (err) {
+                    console.warn("Failed to unlock iOS audio context", err);
+                }
+                try {
+                    var video = document.querySelector("#webcam-video");
+                    if (video) {
+                        video.muted = true;
+                        video.setAttribute("playsinline", "");
+                        video.setAttribute("webkit-playsinline", "");
+                        var playPromise = video.play();
+                        if (playPromise && playPromise.catch) {
+                            await WithTimeout(playPromise.catch(() => {}), 800);
+                        }
+                        video.pause();
+                    }
+                }
+                catch (err) {
+                    console.warn("Failed to unlock iOS video playback", err);
+                }
+            }
+            async function PrimeIOSVideo(url) {
+                if (!IsIOS() || !url) {
+                    return;
+                }
+                try {
+                    window.__primedVideos = window.__primedVideos || {};
+                    if (window.__primedVideos[url]) {
+                        return;
+                    }
+                    var video = document.createElement("video");
+                    video.muted = true;
+                    video.defaultMuted = true;
+                    video.playsInline = true;
+                    video.setAttribute("playsinline", "");
+                    video.setAttribute("webkit-playsinline", "");
+                    video.preload = "auto";
+                    video.loop = false;
+                    video.src = url;
+                    video.style.position = "fixed";
+                    video.style.left = "-2px";
+                    video.style.top = "-2px";
+                    video.style.width = "1px";
+                    video.style.height = "1px";
+                    video.style.opacity = "0";
+                    video.style.pointerEvents = "none";
+                    document.body.appendChild(video);
+                    window.__primedVideos[url] = video;
+                    window.__trackedHtmlVideo = video;
+                    if (video.load) {
+                        video.load();
+                    }
+                    var playPromise = video.play();
+                    if (playPromise && playPromise.then) {
+                        await WithTimeout(playPromise, 1200);
+                    }
+                    try {
+                        video.currentTime = 0;
+                    }
+                    catch (err) {
+                    }
+                }
+                catch (err) {
+                    console.warn("Failed to prime iOS video playback", err);
+                }
+            }
+            async function PrimeTrackedVideosForIOS() {
+                await PrimeIOSVideo("StreamingAssets/Christmas.mp4");
+            }
+            function ApplyTrackedHtmlVideoSize(video, scale, referenceWidth, referenceHeight, videoWidth, videoHeight) {
+                var viewportWidth = Math.round((window.visualViewport && window.visualViewport.width) || window.innerWidth || document.documentElement.clientWidth);
+                var refWidth = Math.max(1, referenceWidth || 640);
+                var cssScale = viewportWidth / refWidth;
+                var safeScale = Math.max(0.1, scale || 1);
+                var cssWidth = Math.max(1, (videoWidth || refWidth) * cssScale * safeScale);
+                var cssHeight = Math.max(1, (videoHeight || (referenceHeight || 1136)) * cssScale * safeScale);
+                video.style.width = cssWidth + "px";
+                video.style.height = cssHeight + "px";
+                video.style.maxWidth = "none";
+                video.style.maxHeight = "none";
+                video.style.objectFit = "contain";
+                video.style.transform = "none";
+            }
+            function EnsureTrackedHtmlVideoOverlay(url, scale, referenceWidth, referenceHeight, videoWidth, videoHeight) {
+                var overlay = document.getElementById("trackedHtmlVideoOverlay");
+                var message = document.getElementById("trackedHtmlVideoMessage");
+                var messageText = document.getElementById("trackedHtmlVideoMessageText");
+                var button = document.getElementById("trackedHtmlVideoButton");
+                var envelopeButton = document.getElementById("santaEnvelopeButton");
+                var video = window.__trackedHtmlVideo;
+                if (!video) {
+                    video = window.__primedVideos && window.__primedVideos[url]
+                        ? window.__primedVideos[url]
+                        : document.createElement("video");
+                    window.__trackedHtmlVideo = video;
+                }
+                if (video.parentElement !== overlay) {
+                    overlay.insertBefore(video, message);
+                }
+                video.setAttribute("playsinline", "");
+                video.setAttribute("webkit-playsinline", "");
+                video.playsInline = true;
+                video.controls = false;
+                video.loop = false;
+                video.muted = false;
+                video.volume = 1;
+                video.preload = "auto";
+                video.style.position = "";
+                video.style.left = "";
+                video.style.top = "";
+                ApplyTrackedHtmlVideoSize(video, scale, referenceWidth, referenceHeight, videoWidth, videoHeight);
+                video.style.transformOrigin = "center center";
+                video.style.opacity = "";
+                video.style.pointerEvents = "";
+                video.style.display = "none";
+                video.pause();
+                if (video.src !== new URL(url, document.baseURI).href) {
+                    video.src = url;
+                    if (video.load) {
+                        video.load();
+                    }
+                }
+                messageText.innerHTML = "Loading video, please wait...";
+                message.style.display = "block";
+                button.style.display = "none";
+                if (envelopeButton) {
+                    envelopeButton.style.display = "none";
+                    envelopeButton.onclick = null;
+                }
+                button.onclick = function () {
+                    PlayTrackedHtmlVideo(url, scale, referenceWidth, referenceHeight, videoWidth, videoHeight);
+                };
+                video.onended = function () {
+                    FinishTrackedHtmlVideo();
+                };
+                overlay.style.display = "flex";
+                return { overlay, message, messageText, button, video };
+            }
+            var christmasSpeechPrimed = false;
+            var christmasSpeechVoice = null;
+            function GetChristmasEnglishVoice() {
+                if (!window.speechSynthesis || !window.speechSynthesis.getVoices) {
+                    return null;
+                }
+                var voices = window.speechSynthesis.getVoices() || [];
+                if (christmasSpeechVoice && voices.indexOf(christmasSpeechVoice) >= 0) {
+                    return christmasSpeechVoice;
+                }
+                christmasSpeechVoice = voices.find(function (voice) { return /en[-_]?US/i.test(voice.lang || ""); })
+                    || voices.find(function (voice) { return /^en/i.test(voice.lang || ""); })
+                    || voices[0]
+                    || null;
+                return christmasSpeechVoice;
+            }
+            function WarmChristmasSpeech() {
+                if (!window.speechSynthesis || !window.SpeechSynthesisUtterance) {
+                    return;
+                }
+                GetChristmasEnglishVoice();
+                if (christmasSpeechPrimed) {
+                    return;
+                }
+                christmasSpeechPrimed = true;
+                try {
+                    var warmup = new SpeechSynthesisUtterance(" ");
+                    warmup.lang = "en-US";
+                    warmup.volume = 0.01;
+                    warmup.rate = 1;
+                    var voice = GetChristmasEnglishVoice();
+                    if (voice) {
+                        warmup.voice = voice;
+                    }
+                    window.speechSynthesis.speak(warmup);
+                }
+                catch (err) {
+                    console.warn("Christmas speech warmup skipped", err);
+                }
+            }
+            function SpeakChristmasLine(text, options, onComplete) {
+                var finished = false;
+                function complete() {
+                    if (finished) {
+                        return;
+                    }
+                    finished = true;
+                    if (typeof onComplete === "function") {
+                        onComplete();
+                    }
+                }
+                try {
+                    var utterance = new SpeechSynthesisUtterance(text);
+                    utterance.lang = "en-US";
+                    utterance.rate = options && options.rate ? options.rate : 1;
+                    utterance.pitch = options && options.pitch ? options.pitch : 1;
+                    utterance.volume = 1;
+                    var voice = GetChristmasEnglishVoice();
+                    if (voice) {
+                        utterance.voice = voice;
+                    }
+                    utterance.onend = complete;
+                    utterance.onerror = function (err) {
+                        console.warn("Christmas TTS line failed", err);
+                        complete();
+                    };
+                    window.speechSynthesis.speak(utterance);
+                    setTimeout(complete, options && options.timeout ? options.timeout : 4000);
+                }
+                catch (err) {
+                    console.warn("Christmas TTS unavailable", err);
+                    complete();
+                }
+            }
+            if (window.speechSynthesis) {
+                window.speechSynthesis.onvoiceschanged = function () {
+                    GetChristmasEnglishVoice();
+                };
+                setTimeout(GetChristmasEnglishVoice, 300);
+            }
+            document.addEventListener("pointerdown", WarmChristmasSpeech, { once: true, passive: true });
+            document.addEventListener("touchstart", WarmChristmasSpeech, { once: true, passive: true });
+            document.addEventListener("click", WarmChristmasSpeech, { once: true, passive: true });
+            var christmasNameIntroState = "idle";
+            var christmasNameIntroCallbacks = [];
+            function CompleteChristmasNameIntroCallbacks() {
+                var callbacks = christmasNameIntroCallbacks.slice();
+                christmasNameIntroCallbacks.length = 0;
+                callbacks.forEach(function(callback) {
+                    if (typeof callback === "function") {
+                        callback();
+                    }
+                });
+            }
+            function PlayChristmasNameIntro(onComplete) {
+                if (christmasNameIntroState === "done") {
+                    if (typeof onComplete === "function") {
+                        setTimeout(onComplete, 0);
+                    }
+                    return;
+                }
+                if (typeof onComplete === "function") {
+                    christmasNameIntroCallbacks.push(onComplete);
+                }
+                if (christmasNameIntroState === "playing") {
+                    return;
+                }
+                christmasNameIntroState = "playing";
+                var done = false;
+                function finish() {
+                    if (done) {
+                        return;
+                    }
+                    done = true;
+                    christmasNameIntroState = "done";
+                    CompleteChristmasNameIntroCallbacks();
+                }
+                var name = window.GetChristmasChildName ? window.GetChristmasChildName() : "";
+                if (!name || !window.speechSynthesis || !window.SpeechSynthesisUtterance) {
+                    finish();
+                    return;
+                }
+                var spokenName = GetChristmasSpeakableName(name);
+                try {
+                    GetChristmasEnglishVoice();
+                    setTimeout(function () {
+                        if (done) {
+                            return;
+                        }
+                        SpeakChristmasLine("Hey!", { rate: 0.48, pitch: 0.78, timeout: 2500 }, function () {
+                            SpeakChristmasLine(spokenName + ".", { rate: 0.72, pitch: 0.75, timeout: 2500 }, function () {
+                                SpeakChristmasLine("Merry Christmas!", { rate: 0.88, pitch: 0.75, timeout: 3000 }, function () {
+                                    SpeakChristmasLine("Open Santa's postcard!", { rate: 0.88, pitch: 0.75, timeout: 3200 }, finish);
+                                });
+                            });
+                        });
+                    }, 500);
+                    setTimeout(finish, 10000);
+                }
+                catch (err) {
+                    console.warn("Christmas name TTS unavailable", err);
+                    finish();
+                }
+            }
+            window.ShowChristmasPostcardTapTarget = function(gameObjectName) {
+                var tapTarget = document.getElementById("christmasPostcardTapTarget");
+                if (!tapTarget) {
+                    tapTarget = document.createElement("button");
+                    tapTarget.id = "christmasPostcardTapTarget";
+                    tapTarget.type = "button";
+                    tapTarget.setAttribute("aria-label", "Open Santa's postcard");
+                    tapTarget.style.position = "fixed";
+                    tapTarget.style.left = "0";
+                    tapTarget.style.top = "0";
+                    tapTarget.style.width = "100vw";
+                    tapTarget.style.height = "100vh";
+                    tapTarget.style.zIndex = "2147483647";
+                    tapTarget.style.border = "0";
+                    tapTarget.style.padding = "0";
+                    tapTarget.style.margin = "0";
+                    tapTarget.style.background = "rgba(0,0,0,0)";
+                    tapTarget.style.touchAction = "manipulation";
+                    document.body.appendChild(tapTarget);
+                }
+                tapTarget.style.display = "block";
+                tapTarget.__postcardOpened = false;
+                tapTarget.onclick = function(event) {
+                    if (event) {
+                        event.preventDefault();
+                    }
+                    if (tapTarget.__postcardOpened) {
+                        return;
+                    }
+                    tapTarget.__postcardOpened = true;
+                    tapTarget.style.display = "none";
+                    if (window.unityInstance && gameObjectName) {
+                        window.unityInstance.SendMessage(gameObjectName, "OpenPostcardFromWeb", "");
+                    }
+                };
+                tapTarget.ontouchend = tapTarget.onclick;
+            };
+            window.HideChristmasPostcardTapTarget = function() {
+                var tapTarget = document.getElementById("christmasPostcardTapTarget");
+                if (tapTarget) {
+                    tapTarget.style.display = "none";
+                    tapTarget.onclick = null;
+                    tapTarget.ontouchend = null;
+                }
+            };
+            window.ShowChristmasCompletionRestart = function(gameObjectName) {
+                var restartTarget = document.getElementById("christmasCompletionRestartTarget");
+                if (!restartTarget) {
+                    restartTarget = document.createElement("button");
+                    restartTarget.id = "christmasCompletionRestartTarget";
+                    restartTarget.type = "button";
+                    restartTarget.setAttribute("aria-label", "Restart Christmas experience");
+                    restartTarget.style.position = "fixed";
+                    restartTarget.style.left = "0";
+                    restartTarget.style.top = "0";
+                    restartTarget.style.width = "100vw";
+                    restartTarget.style.height = "100vh";
+                    restartTarget.style.zIndex = "2147483646";
+                    restartTarget.style.border = "0";
+                    restartTarget.style.padding = "0";
+                    restartTarget.style.margin = "0";
+                    restartTarget.style.background = "rgba(0,0,0,0)";
+                    restartTarget.style.touchAction = "manipulation";
+                    document.body.appendChild(restartTarget);
+                }
+                restartTarget.style.display = "block";
+                restartTarget.onclick = function(event) {
+                    if (event) {
+                        event.preventDefault();
+                        event.stopPropagation();
+                    }
+                    window.HideChristmasCompletionRestart();
+                    if (window.unityInstance && gameObjectName) {
+                        window.unityInstance.SendMessage(gameObjectName, "RestartChristmasExperience", "");
+                    }
+                };
+                restartTarget.ontouchend = restartTarget.onclick;
+            };
+            window.HideChristmasCompletionRestart = function() {
+                var restartTarget = document.getElementById("christmasCompletionRestartTarget");
+                if (restartTarget) {
+                    restartTarget.style.display = "none";
+                    restartTarget.onclick = null;
+                    restartTarget.ontouchend = null;
+                }
+            };
+            window.PlayChristmasNameIntroForUnity = function(gameObjectName) {
+                PlayChristmasNameIntro(function () {
+                    if (window.unityInstance && gameObjectName) {
+                        window.unityInstance.SendMessage(gameObjectName, "OnChristmasNameIntroFinished", "");
+                    }
+                });
+            };
+            window.PlayTrackedHtmlVideo = function(url, scale, referenceWidth, referenceHeight, videoWidth, videoHeight) {
+                var state = EnsureTrackedHtmlVideoOverlay(url, scale, referenceWidth, referenceHeight, videoWidth, videoHeight);
+                var video = state.video;
+                function showTapFallback() {
+                    state.messageText.innerHTML = "Tap to play video";
+                    state.button.style.display = "inline-block";
+                    state.message.style.display = "block";
+                }
+                function markPlaying() {
+                    state.message.style.display = "none";
+                    state.button.style.display = "none";
+                }
+                function playMutedFallback(err) {
+                    console.warn("HTML tracked video play with audio failed; retrying muted", err);
+                    video.muted = true;
+                    video.defaultMuted = true;
+                    var mutedPromise = video.play();
+                    if (mutedPromise && mutedPromise.then) {
+                        mutedPromise.then(markPlaying).catch(function (mutedErr) {
+                            console.warn("HTML tracked muted video play failed", mutedErr);
+                            showTapFallback();
+                        });
+                    }
+                    else {
+                        markPlaying();
+                    }
+                }
+                function beginVideoPlayback() {
+                    video.style.display = "";
+                    try {
+                        video.currentTime = 0;
+                    }
+                    catch (err) {
+                    }
+                    video.defaultMuted = false;
+                    video.muted = false;
+                    video.volume = 1;
+                    var playPromise = video.play();
+                    if (playPromise && playPromise.then) {
+                        playPromise.then(markPlaying).catch(playMutedFallback);
+                    }
+                    else {
+                        markPlaying();
+                    }
+                }
+                state.messageText.innerHTML = "Loading video, please wait...";
+                state.message.style.display = "block";
+                state.button.style.display = "none";
+                beginVideoPlayback();
+            };
+            function FinishTrackedHtmlVideo() {
+                var overlay = document.getElementById("trackedHtmlVideoOverlay");
+                var video = window.__trackedHtmlVideo;
+                if (video) {
+                    video.pause();
+                    video.style.display = "none";
+                }
+                if (overlay) {
+                    overlay.style.display = "none";
+                }
+                if (window.unityInstance) {
+                    window.unityInstance.SendMessage("ImageScanUIBridge", "OnTrackedTargetVideoEnded", "");
+                }
+            }
+            window.StopTrackedHtmlVideo = function() {
+                if (window.HideChristmasCompletionRestart) {
+                    window.HideChristmasCompletionRestart();
+                }
+                christmasNameIntroState = "idle";
+                christmasNameIntroCallbacks.length = 0;
+                if (window.speechSynthesis) {
+                    window.speechSynthesis.cancel();
+                }
+                var overlay = document.getElementById("trackedHtmlVideoOverlay");
+                var envelopeButton = document.getElementById("santaEnvelopeButton");
+                if (envelopeButton) {
+                    envelopeButton.style.display = "none";
+                    envelopeButton.onclick = null;
+                }
+                var video = window.__trackedHtmlVideo;
+                if (video) {
+                    video.pause();
+                    video.style.display = "none";
+                    try {
+                        video.currentTime = 0;
+                    }
+                    catch (err) {
+                    }
+                }
+                if (overlay) {
+                    overlay.style.display = "none";
+                }
+            };
+            async function BeginChristmasExperience() {
+                if (!EnsureChristmasChildNameBeforeStart()) {
+                    return;
+                }
+                ScheduleViewportRefresh();
+                if (!trackerInitialized) {
+                    await initialize();
+                    return;
+                }
+                await StartAR();
+            }
+            async function StartAR() {
+                if (unityStarted) {
+                    return;
+                }
+                if (!EnsureChristmasChildNameBeforeStart()) {
+                    return;
+                }
+                unityStarted = true;
+                ScheduleViewportRefresh();
+                var startButton = document.getElementById("startARButton");
+                if (startButton) {
+                    startButton.disabled = true;
+                    startButton.innerText = "Starting...";
+                }
+                var primeVideosPromise = PrimeTrackedVideosForIOS();
+                var webcamReady = await RequestWebcam();
+                if (!webcamReady) {
+                    unityStarted = false;
+                    if (startButton) {
+                        startButton.disabled = false;
+                        startButton.innerText = "Tap to start";
+                    }
+                    return;
+                }
+                await primeVideosPromise;
+                await UnlockIOSMedia();
+                
+                document.getElementById("startARDiv").style.display = "none";
+                createUnityInstance(document.querySelector("#unity-canvas"), {
+                    dataUrl: "Build/ar-圣诞.data.unityweb",
+                    frameworkUrl: "Build/ar-圣诞.framework.js.unityweb",
+                    codeUrl: "Build/ar-圣诞.wasm.unityweb",
+                    streamingAssetsUrl: "StreamingAssets",
+                    companyName: "DefaultCompany",
+                    productName: "TestImageAR",
+                    productVersion: "0.1",
+                    //webglContextAttributes: { "preserveDrawingBuffer": true },
+                    // matchWebGLToCanvasSize: false, // Uncomment this to separately control WebGL canvas render size and DOM element size.
+                    // devicePixelRatio: 1, // Uncomment this to override low DPI rendering on high DPI displays.
+                    },
+                    (progress) => {
+                        progressBarFull.style.width = 100 * progress + "%";
+                    }
+                ).then((unityInstance) => {
+                    window.unityInstance = unityInstance;
+                    ScheduleViewportRefresh();
+                    setTimeout(() => window.dispatchEvent(new Event("resize")), 50);
+                    loadingBar.style.display = "none";
+                }).catch((err) => {
+                    console.error("Unity failed to start - ", err);
+                    ShowError("Failed to start the experience.");
+                    unityStarted = false;
+                    if (startButton) {
+                        startButton.disabled = false;
+                        startButton.innerText = "Tap to start";
+                    }
+                    loadingBar.style.display = "none";
+                });
+                loadingBar.style.display = "block";
+            }
+            // Prefer the rear camera on mobile devices.
+		window.unityFacingMode = "environment"
+            window.WEBCAM_SETTINGS = {
+                video: {
+                    facingMode: { ideal: unityFacingMode },
+                    width: { ideal: 1280 },
+                    height: { ideal: 720 },
+                    frameRate: { ideal: 30, max: 30 },
+                    focusMode: { ideal: "continuous" },
+                    exposureMode: { ideal: "continuous" },
+                    whiteBalanceMode: { ideal: "continuous" },
+                },
+                audio: false
+            };
+            async function OptimizeCameraTrack(stream) {
+                try {
+                    var track = stream && stream.getVideoTracks ? stream.getVideoTracks()[0] : null;
+                    if (!track || !track.applyConstraints) {
+                        return;
+                    }
+                    await track.applyConstraints({
+                        advanced: [
+                            { focusMode: "continuous" },
+                            { exposureMode: "continuous" },
+                            { whiteBalanceMode: "continuous" }
+                        ]
+                    });
+                }
+                catch (err) {
+                    console.warn("Camera track optimization skipped", err);
+                }
+            }
+            window.requestingForPermissions = false;
+            async function RequestWebcam(){
+                if (window.webcamStream && window.webcamStream.active) {
+                    return true;
+                }
+                if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                    ShowError("Camera access is not available in this browser.");
+                    return false;
+                }
+                window.requestingForPermissions = true;
+                try{
+                    window.webcamStream = await navigator.mediaDevices.getUserMedia(window.WEBCAM_SETTINGS);
+                    await OptimizeCameraTrack(window.webcamStream);
+                    console.log("Webcam access granted");
+                    requestingForPermissions = false;
+                    return true;
+                }
+                catch (err) {
+                    //user denied camera permission - show error panel
+                    console.error("getUserMedia error - " , err);
+                    ShowError("Failed to start the experience. Camera permission was denied.");
+                    window.requestingForPermissions = false;
+                    return false;
+                }           
+            }
+            async function StartWebcam(){
+                console.log("StartWebcam")
+                while (window.requestingForPermissions) {
+                    // Wait until requestingForPermissions becomes true.
+                    console.log("Waiting for permissions...");
+                    await new Promise(resolve => setTimeout(resolve, 100)); // Adjust the delay time as needed.
+                }
+                console.log("Got Permissions");
+                if(window.webcamStream)
+                {
+                    const video = document.querySelector("#webcam-video");
+                    video.srcObject = webcamStream;
+                    try {
+                        await arCamera.startWebcam(video);
+                        console.log("Webcam started successfully");
+                        ScheduleUnityCanvasCenterTap();
+                        window.unityInstance.SendMessage('ARCamera', 'OnStartWebcamSuccess');
+                    }
+                    catch(err){
+                        console.error("Webcam failed to start - ", err);
+                        window.unityInstance.SendMessage('ARCamera', 'OnStartWebcamFail');
+                    }   
+                }
+                else{
+                    console.error("Webcam failed to start - permission not yet granted");
+                    window.unityInstance.SendMessage('ARCamera', 'OnStartWebcamFail');
+                }  
+            }
+            async function LoadWebcams(){
+                let camDevices = [];
+                // let backCams = [];
+                let devices = await navigator.mediaDevices.enumerateDevices();
+                var ctr = 0;
+                devices.forEach(mediaDevice => {
+                    if (mediaDevice.kind === 'videoinput') {
+                        if(window.unityFacingMode == 'environment' && !mediaDevice.label.includes('facing front')){
+                            //back cam only
+                            camDevices.push(mediaDevice);
+                        }
+                        else if(window.unityFacingMode == 'user' && mediaDevice.label.includes('facing front')){
+                            //front cam only
+                            camDevices.push(mediaDevice);
+                        }
+                        else{
+                            //back and front
+                            camDevices.push(mediaDevice);
+                        }   
+                        
+                        ctr++;
+                    }
+                });
+                var select = document.getElementById("chooseCamSel");
+                select.style.display = "block";
+                var count = 0;
+                //reverse array because some Android phones can't distinguish front and back cams at first load
+                //and when this happens, most of the time, front cam goes first and back cam goes last
+                camDevices = camDevices.reverse();
+                camDevices.forEach(mediaDevice => {
+                    const option = document.createElement('option');
+                    option.value = mediaDevice.deviceId;
+                    let label = `Camera ${count}`;
+                    if (mediaDevice.label) {
+                        label = mediaDevice.label
+                    }
+                    const textNode = document.createTextNode(label);
+                    option.appendChild(textNode);
+                    select.appendChild(option);
+                    count++;
+                });
+                iTracker.WEBCAM_NAME = select.options[select.selectedIndex].innerHTML;
+            }
+            function SelectCam(){
+                var select = document.getElementById("chooseCamSel");
+                window.deviceId = select.value;
+                window.WEBCAM_SETTINGS.video['deviceId'] = deviceId;
+                //console.log(window.WEBCAM_SETTINGS);
+                iTracker.WEBCAM_NAME = select.options[select.selectedIndex].innerHTML;
+            }
+            function TapUnityCanvasCenter() {
+                var canvas = document.getElementById("unity-canvas");
+                if (!canvas) {
+                    return;
+                }
+                if (window.__setAppViewportSize) {
+                    window.__setAppViewportSize();
+                }
+                window.dispatchEvent(new Event("resize"));
+                var rect = canvas.getBoundingClientRect();
+                var x = Math.round(rect.left + rect.width * 0.5);
+                var y = Math.round(rect.top + rect.height * 0.5);
+                var target = document.elementFromPoint(x, y) || canvas;
+                try {
+                    target.dispatchEvent(new PointerEvent("pointerdown", {
+                        bubbles: true,
+                        cancelable: true,
+                        pointerId: 1,
+                        pointerType: "touch",
+                        isPrimary: true,
+                        clientX: x,
+                        clientY: y
+                    }));
+                    target.dispatchEvent(new PointerEvent("pointerup", {
+                        bubbles: true,
+                        cancelable: true,
+                        pointerId: 1,
+                        pointerType: "touch",
+                        isPrimary: true,
+                        clientX: x,
+                        clientY: y
+                    }));
+                }
+                catch (err) {
+                    target.dispatchEvent(new MouseEvent("mousedown", { bubbles: true, cancelable: true, clientX: x, clientY: y }));
+                    target.dispatchEvent(new MouseEvent("mouseup", { bubbles: true, cancelable: true, clientX: x, clientY: y }));
+                }
+                target.dispatchEvent(new MouseEvent("click", {
+                    bubbles: true,
+                    cancelable: true,
+                    clientX: x,
+                    clientY: y
+                }));
+            }
+            function ScheduleUnityCanvasCenterTap() {
+                setTimeout(TapUnityCanvasCenter, 160);
+            }
+            async function FlipCam(){
+                arCamera.stopWebcam();
+                window.WEBCAM_SETTINGS.video.deviceId = '';
+                if(window.WEBCAM_SETTINGS.video.facingMode == 'user'){
+                    window.WEBCAM_SETTINGS.video.facingMode = 'environment';
+                    arCamera.setFlipped(false);
+                }
+                else{
+                    window.WEBCAM_SETTINGS.video.facingMode = 'user';
+                    arCamera.setFlipped(true);
+                }
+                window.webcamStream = await navigator.mediaDevices.getUserMedia(window.WEBCAM_SETTINGS);
+                await OptimizeCameraTrack(window.webcamStream);
+                const video = document.querySelector("#webcam-video");
+                video.srcObject = webcamStream;
+                await arCamera.startWebcam(video);
+            }
+            function ShowError(error){
+                document.getElementById("errorDiv").style.display = "flex";
+                document.getElementById("errorText").innerHTML = error;
+            }
+            function ShowScreenshot(dataUrl){
+                document.getElementById("screenshotDiv").style.display = "flex";
+                document.getElementById("screenshotImg").src = dataUrl;
+                document.getElementById("screenshotImg").style.width = "80vw";
+                document.getElementById("screenshotImg").style.height = 80 / window.innerWidth * window.innerHeight + "vw";
+            }
+            function ShowConfirmUrl(url){
+                document.getElementById("confirmUrlDiv").style.display = "flex";
+                window.newUrlString = url;
+                document.getElementById("confirmUrlText").innerText = "Are you sure you want to visit " + url;                
+            }
+            window.ITRACKER_GLOBALS = {
+                //place global settings here
+                INTERNAL_SMOOTHFACTOR_POS: .075,
+                DETECTOR: "ORB",
+            }
+            
+    </script>
+</body>
+</html>
+
+
