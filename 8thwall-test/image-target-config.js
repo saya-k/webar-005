@@ -32,6 +32,8 @@
   let appStarted = false;
   let cameraStarted = false;
   let waitingForCameraReady = false;
+  let bootRequested = false;
+  let cameraWaitToken = 0;
   let threeReady = false;
   let renderer;
   let scene;
@@ -700,6 +702,8 @@
 
   function showNameGate(focus) {
     if (!nameInput || !nameGate) return;
+    hideLoadingOverlay();
+    hideScanStatus();
     nameInput.value = state.childName;
     nameGate.classList.remove('hidden');
     if (focus) setTimeout(() => nameInput.focus(), 80);
@@ -717,13 +721,13 @@
     nameGate.classList.add('hidden');
     refreshNameBadge();
     unlockSpeech();
-    showScanStatus();
-    setScanStatus('Scanning...');
+    waitForCameraReady();
+    bootAr();
     if (cameraStarted) {
+      waitingForCameraReady = false;
       hideLoadingOverlay();
-    } else {
-      waitingForCameraReady = true;
-      showLoadingOverlay();
+      showScanStatus();
+      setScanStatus('Scanning...');
     }
   }
 
@@ -737,6 +741,19 @@
 
   function showLoadingOverlay() {
     if (loadingOverlay) loadingOverlay.classList.remove('hidden');
+  }
+
+  function waitForCameraReady() {
+    waitingForCameraReady = true;
+    showLoadingOverlay();
+    const token = ++cameraWaitToken;
+    setTimeout(() => {
+      if (!waitingForCameraReady || token !== cameraWaitToken) return;
+      waitingForCameraReady = false;
+      hideLoadingOverlay();
+      showScanStatus();
+      setScanStatus('Scanning...');
+    }, 9000);
   }
 
   function setScanStatus(text) {
@@ -785,6 +802,7 @@
   }
 
   async function configureImageTargets() {
+    bootRequested = true;
     try {
       installStyles();
       ensureUi();
@@ -837,6 +855,13 @@
       setScanStatus(`Image target setup failed: ${errorText(error)}`);
       setTimeout(hideLoadingOverlay, 1200);
     }
+  }
+
+  function bootAr() {
+    if (bootRequested || appStarted) return;
+    bootRequested = true;
+    if (window.XR8) configureImageTargets();
+    else window.addEventListener('xrloaded', configureImageTargets, { once: true });
   }
 
   async function initThree() {
@@ -1424,11 +1449,11 @@
   }, 9000);
   if (!state.childName) {
     hideLoadingOverlay();
-    showScanStatus();
-    setScanStatus('Set name first');
+    hideScanStatus();
+    showNameGate(false);
+  } else {
+    bootAr();
   }
-
-  if (window.XR8) configureImageTargets();
-  else window.addEventListener('xrloaded', configureImageTargets, { once: true });
 })();
+
 
