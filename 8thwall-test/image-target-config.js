@@ -6,6 +6,7 @@
   const SANTA_BASE_Y = 0;
 
   let scanStatus;
+  let scanGuide;
   let loadingOverlay;
   let flowLayer;
   let nameGate;
