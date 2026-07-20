@@ -450,8 +450,8 @@
       .complete-header-lottie {
         position: relative;
         z-index: 1;
-        width: min(86vw, 460px);
-        height: min(42vw, 230px);
+        width: min(172vw, 920px);
+        height: min(84vw, 460px);
         pointer-events: none;
       }
 
@@ -937,7 +937,13 @@
 
     speakIntro();
 
+    const postcardLeadTimer = setTimeout(() => {
+      if (!state.experienceStarted || state.flowToken !== flowToken) return;
+      finishSpeechStep({ cancelSpeech: false });
+    }, 4700);
+
     playIntroLottieOnce().then(() => {
+      clearTimeout(postcardLeadTimer);
       if (!state.experienceStarted || state.flowToken !== flowToken) return;
       finishSpeechStep({ cancelSpeech: false });
     });
@@ -1250,6 +1256,7 @@
   if (window.XR8) configureImageTargets();
   else window.addEventListener('xrloaded', configureImageTargets, { once: true });
 })();
+
 
 
 
