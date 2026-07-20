@@ -155,6 +155,11 @@
         display: none;
       }
 
+      #target-scan-status.scanning-loading::after {
+        content: "";
+        animation: scan-status-dots 1.2s steps(4, end) infinite;
+      }
+
       #scan-guide {
         position: fixed;
         inset: 0;
@@ -168,8 +173,8 @@
 
       .scan-corner {
         position: absolute;
-        width: min(11vw, 48px);
-        height: min(11vw, 48px);
+        width: min(9vw, 38px);
+        height: min(9vw, 38px);
         border-color: rgba(174, 211, 255, 0.96);
         color: rgba(174, 211, 255, 0.96);
         filter: drop-shadow(0 0 5px rgba(84, 148, 230, 0.26));
@@ -178,33 +183,33 @@
       .scan-corner.tl {
         left: 7vw;
         top: 18vh;
-        border-left: 5px solid rgba(174, 211, 255, 0.96);
-        border-top: 5px solid rgba(174, 211, 255, 0.96);
-        border-radius: 14px 0 0 0;
+        border-left: 4px solid rgba(174, 211, 255, 0.96);
+        border-top: 4px solid rgba(174, 211, 255, 0.96);
+        border-radius: 12px 0 0 0;
       }
 
       .scan-corner.tr {
         right: 7vw;
         top: 18vh;
-        border-right: 5px solid rgba(174, 211, 255, 0.96);
-        border-top: 5px solid rgba(174, 211, 255, 0.96);
-        border-radius: 0 14px 0 0;
+        border-right: 4px solid rgba(174, 211, 255, 0.96);
+        border-top: 4px solid rgba(174, 211, 255, 0.96);
+        border-radius: 0 12px 0 0;
       }
 
       .scan-corner.bl {
         left: 7vw;
         bottom: 25vh;
-        border-left: 5px solid rgba(174, 211, 255, 0.96);
-        border-bottom: 5px solid rgba(174, 211, 255, 0.96);
-        border-radius: 0 0 0 14px;
+        border-left: 4px solid rgba(174, 211, 255, 0.96);
+        border-bottom: 4px solid rgba(174, 211, 255, 0.96);
+        border-radius: 0 0 0 12px;
       }
 
       .scan-corner.br {
         right: 7vw;
         bottom: 25vh;
-        border-right: 5px solid rgba(174, 211, 255, 0.96);
-        border-bottom: 5px solid rgba(174, 211, 255, 0.96);
-        border-radius: 0 0 14px 0;
+        border-right: 4px solid rgba(174, 211, 255, 0.96);
+        border-bottom: 4px solid rgba(174, 211, 255, 0.96);
+        border-radius: 0 0 12px 0;
       }
 
       .scan-line {
@@ -212,11 +217,12 @@
         left: 13vw;
         right: 13vw;
         top: 45vh;
-        height: 4px;
+        height: 3px;
         border-radius: 999px;
         background: linear-gradient(90deg, rgba(64, 173, 210, 0.7), rgba(26, 190, 140, 0.92), rgba(64, 173, 210, 0.7));
         box-shadow: 0 0 12px rgba(26, 190, 140, 0.28);
-        animation: scan-line-pulse 1.35s ease-in-out infinite;
+        transform-origin: center center;
+        animation: scan-line-unity 4.5s linear infinite;
       }
 
       .scan-guide-text {
@@ -241,9 +247,21 @@
         text-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
       }
 
-      @keyframes scan-line-pulse {
-        0%, 100% { opacity: 0.62; transform: scaleX(0.98); }
-        50% { opacity: 1; transform: scaleX(1.02); }
+      @keyframes scan-line-unity {
+        0% { opacity: 0.72; transform: translateY(-23vh) scaleX(0.88); }
+        8.889% { opacity: 1; transform: translateY(-23vh) scaleX(1); }
+        43.333% { opacity: 1; transform: translateY(22vh) scaleX(1); }
+        52.963% { opacity: 0.72; transform: translateY(23vh) scaleX(0.88); }
+        61.111% { opacity: 1; transform: translateY(23vh) scaleX(1); }
+        93.333% { opacity: 1; transform: translateY(-23vh) scaleX(1); }
+        100% { opacity: 0.72; transform: translateY(-23vh) scaleX(0.88); }
+      }
+
+      @keyframes scan-status-dots {
+        0% { content: ""; }
+        25% { content: "."; }
+        50% { content: ".."; }
+        75%, 100% { content: "..."; }
       }
 
       #name-badge {
@@ -654,7 +672,8 @@
     if (!scanStatus) {
       scanStatus = document.createElement('div');
       scanStatus.id = 'target-scan-status';
-      scanStatus.textContent = 'Scanning...';
+      scanStatus.textContent = 'Scanning';
+      scanStatus.classList.add('scanning-loading');
       document.body.appendChild(scanStatus);
     }
 
@@ -722,7 +741,10 @@
 
   function setScanStatus(text) {
     ensureUi();
-    scanStatus.textContent = text;
+    const value = String(text || '');
+    const isScanning = /^Scanning/i.test(value);
+    scanStatus.classList.toggle('scanning-loading', isScanning);
+    scanStatus.textContent = isScanning ? 'Scanning' : value;
   }
 
   function hideScanStatus() {
@@ -1409,15 +1431,4 @@
   if (window.XR8) configureImageTargets();
   else window.addEventListener('xrloaded', configureImageTargets, { once: true });
 })();
-
-
-
-
-
-
-
-
-
-
-
 
