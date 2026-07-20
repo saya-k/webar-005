@@ -826,8 +826,12 @@
           cameraStarted = true;
           waitingForCameraReady = false;
           hideLoadingOverlay();
-          showScanStatus();
-          setScanStatus(state.childName ? 'Scanning...' : 'Set name first');
+          if (state.childName) {
+            showScanStatus();
+            setScanStatus('Scanning...');
+          } else {
+            hideScanStatus();
+          }
         },
         listeners: [
           {
@@ -1447,12 +1451,11 @@
   setTimeout(() => {
     if (!waitingForCameraReady) hideLoadingOverlay();
   }, 9000);
+  bootAr();
   if (!state.childName) {
     hideLoadingOverlay();
     hideScanStatus();
     showNameGate(false);
-  } else {
-    bootAr();
   }
 })();
 
