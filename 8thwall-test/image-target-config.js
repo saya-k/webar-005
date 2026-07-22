@@ -554,6 +554,10 @@
         transform: translate(-50%, -50%);
       }
 
+      #postcard-button.lottie-playing .postcard-copy {
+        opacity: 0;
+      }
+
       .postcard-eyebrow {
         display: block;
         margin-bottom: 6px;
@@ -1318,7 +1322,7 @@
     hidePcTestPanel();
     preloadPostcardLottie();
     postcardButton.classList.add('hidden');
-    postcardButton.classList.remove('opening', 'lottie-done', 'lottie-visible');
+    postcardButton.classList.remove('opening', 'lottie-done', 'lottie-visible', 'lottie-playing');
     resetPostcardLottie();
     resetIntroLottie();
     videoOverlay.classList.add('hidden');
@@ -1422,6 +1426,7 @@
       animation.loop = false;
       animation.setDirection(1);
       animation.goToAndStop(0, true);
+      if (postcardButton) postcardButton.classList.remove('lottie-playing');
       if (postcardButton) postcardButton.classList.add('lottie-visible', 'lottie-done');
     }).catch((error) => {
       console.warn('[Christmas AR] postcard lottie failed:', error);
@@ -1444,7 +1449,7 @@
       animation.loop = false;
       animation.setDirection(1);
       animation.goToAndStop(0, true);
-      if (postcardButton) postcardButton.classList.add('lottie-visible', 'lottie-done');
+      if (postcardButton) postcardButton.classList.add('lottie-visible', 'lottie-done', 'lottie-playing');
       animation.addEventListener('complete', finish);
       requestAnimationFrame(() => animation.play());
       const frameRate = Number(animation.frameRate || 0);
@@ -1460,7 +1465,7 @@
 
   function resetPostcardLottie() {
     postcardLottiePlayed = false;
-    if (postcardButton) postcardButton.classList.remove('lottie-done', 'lottie-visible');
+    if (postcardButton) postcardButton.classList.remove('lottie-done', 'lottie-visible', 'lottie-playing');
     if (!postcardLottieAnimation) return;
     postcardLottieAnimation.setDirection(1);
     postcardLottieAnimation.goToAndStop(0, true);
@@ -1525,7 +1530,6 @@
       const totalMs = frameRate > 0 && totalFrames > 0
         ? Math.round((totalFrames / frameRate) * 1000)
         : 5200;
-      setTimeout(revealPostcard, Math.max(0, totalMs - 500));
       setTimeout(finish, totalMs + 120);
     })).catch((error) => {
       console.warn('[Christmas AR] intro lottie failed:', error);
@@ -1686,7 +1690,7 @@
     completeOverlay.classList.add('hidden');
     videoOverlay.classList.add('hidden');
     postcardButton.classList.add('hidden');
-    postcardButton.classList.remove('opening', 'lottie-done', 'lottie-visible');
+    postcardButton.classList.remove('opening', 'lottie-done', 'lottie-visible', 'lottie-playing');
     resetPostcardLottie();
     resetIntroLottie();
     stopCompleteHeaderLottie();
