@@ -777,6 +777,7 @@
       });
       christmasVideo.addEventListener('ended', showComplete);
       document.getElementById('restart-button').addEventListener('click', restartExperience);
+      preloadPostcardLottie();
       ensureCompleteHeaderLottie().catch((error) => {
         console.warn('[Christmas AR] complete lottie preload failed:', error);
       });
@@ -1315,6 +1316,7 @@
     state.santaTime = 0;
     hideScanStatus();
     hidePcTestPanel();
+    preloadPostcardLottie();
     postcardButton.classList.add('hidden');
     postcardButton.classList.remove('opening', 'lottie-done', 'lottie-visible');
     resetPostcardLottie();
@@ -1380,6 +1382,16 @@
       document.head.appendChild(script);
     });
     return lottieRuntimePromise;
+  }
+
+  function preloadPostcardLottie() {
+    ensurePostcardLottie().then((animation) => {
+      animation.loop = false;
+      animation.setDirection(1);
+      animation.goToAndStop(0, true);
+    }).catch((error) => {
+      console.warn('[Christmas AR] postcard lottie preload failed:', error);
+    });
   }
 
   function ensurePostcardLottie() {
