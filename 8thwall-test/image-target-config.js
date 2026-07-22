@@ -494,6 +494,11 @@
         transform: translate3d(-50%, 0, 0);
       }
 
+      #postcard-button.lottie-intro-fade .postcard-lottie,
+      #postcard-button.lottie-intro-fade .postcard-copy {
+        animation: postcard-opacity-in 0.5s ease-out both;
+      }
+
       .postcard-lottie {
         position: absolute;
         left: 50%;
@@ -605,6 +610,11 @@
 
       @keyframes postcard-open {
         to { transform: translate3d(-50%, -34px, 0) scale(1.08) rotateX(34deg); opacity: 0; }
+      }
+
+      @keyframes postcard-opacity-in {
+        from { opacity: 0.5; }
+        to { opacity: 1; }
       }
 
       #christmas-video-overlay, #complete-overlay {
@@ -1322,7 +1332,7 @@
     hidePcTestPanel();
     preloadPostcardLottie();
     postcardButton.classList.add('hidden');
-    postcardButton.classList.remove('opening', 'lottie-done', 'lottie-visible', 'lottie-playing');
+    postcardButton.classList.remove('opening', 'lottie-done', 'lottie-visible', 'lottie-playing', 'lottie-intro-fade');
     resetPostcardLottie();
     resetIntroLottie();
     videoOverlay.classList.add('hidden');
@@ -1427,7 +1437,10 @@
       animation.setDirection(1);
       animation.goToAndStop(0, true);
       if (postcardButton) postcardButton.classList.remove('lottie-playing');
-      if (postcardButton) postcardButton.classList.add('lottie-visible', 'lottie-done');
+      if (postcardButton) postcardButton.classList.add('lottie-visible', 'lottie-done', 'lottie-intro-fade');
+      setTimeout(() => {
+        if (postcardButton) postcardButton.classList.remove('lottie-intro-fade');
+      }, 520);
     }).catch((error) => {
       console.warn('[Christmas AR] postcard lottie failed:', error);
       if (postcardButton) postcardButton.classList.add('lottie-visible', 'lottie-done');
@@ -1449,6 +1462,7 @@
       animation.loop = false;
       animation.setDirection(1);
       animation.goToAndStop(0, true);
+      if (postcardButton) postcardButton.classList.remove('lottie-intro-fade');
       if (postcardButton) postcardButton.classList.add('lottie-visible', 'lottie-done', 'lottie-playing');
       animation.addEventListener('complete', finish);
       requestAnimationFrame(() => animation.play());
@@ -1465,7 +1479,7 @@
 
   function resetPostcardLottie() {
     postcardLottiePlayed = false;
-    if (postcardButton) postcardButton.classList.remove('lottie-done', 'lottie-visible', 'lottie-playing');
+    if (postcardButton) postcardButton.classList.remove('lottie-done', 'lottie-visible', 'lottie-playing', 'lottie-intro-fade');
     if (!postcardLottieAnimation) return;
     postcardLottieAnimation.setDirection(1);
     postcardLottieAnimation.goToAndStop(0, true);
@@ -1690,7 +1704,7 @@
     completeOverlay.classList.add('hidden');
     videoOverlay.classList.add('hidden');
     postcardButton.classList.add('hidden');
-    postcardButton.classList.remove('opening', 'lottie-done', 'lottie-visible', 'lottie-playing');
+    postcardButton.classList.remove('opening', 'lottie-done', 'lottie-visible', 'lottie-playing', 'lottie-intro-fade');
     resetPostcardLottie();
     resetIntroLottie();
     stopCompleteHeaderLottie();
