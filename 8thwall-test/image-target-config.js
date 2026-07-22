@@ -496,7 +496,7 @@
 
       #postcard-button.lottie-intro-fade .postcard-lottie,
       #postcard-button.lottie-intro-fade .postcard-copy {
-        animation: postcard-opacity-in 0.5s ease-out both;
+        animation: postcard-opacity-in 1s ease-out both;
       }
 
       .postcard-lottie {
@@ -613,7 +613,7 @@
       }
 
       @keyframes postcard-opacity-in {
-        from { opacity: 0.5; }
+        from { opacity: 0.3; }
         to { opacity: 1; }
       }
 
@@ -1440,7 +1440,7 @@
       if (postcardButton) postcardButton.classList.add('lottie-visible', 'lottie-done', 'lottie-intro-fade');
       setTimeout(() => {
         if (postcardButton) postcardButton.classList.remove('lottie-intro-fade');
-      }, 520);
+      }, 1020);
     }).catch((error) => {
       console.warn('[Christmas AR] postcard lottie failed:', error);
       if (postcardButton) postcardButton.classList.add('lottie-visible', 'lottie-done');
