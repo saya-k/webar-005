@@ -1,6 +1,7 @@
 (function () {
   const targetNames = ['1', '2', '3', '4', '5'];
   const NAME_KEY = 'christmasChildName';
+  const PC_TEST_MODE = new URLSearchParams(window.location.search).get('pcTest') === '1';
   const STATIC_SANTA_DIAGNOSTIC = false;
   const SANTA_BASE_X = 0.25;
   const SANTA_BASE_Y = 0;
@@ -30,6 +31,8 @@
   let completeLottieAnimation;
   let loadingText;
   let cameraRetryButton;
+  let pcTestButton;
+  let pcTestPanel;
 
   let appStarted = false;
   let cameraPermissionGranted = false;
@@ -64,6 +67,7 @@
     speechWatchdog: null,
     speechDeadlineAt: 0,
     flowToken: 0,
+    pcTestActive: false,
   };
 
   function installStyles() {
@@ -128,8 +132,69 @@
         font: 800 16px/1 Arial, Helvetica, sans-serif;
       }
 
-      #camera-permission-retry.visible {
+      #camera-permission-retry.visible, #pc-test-mode-button.visible {
         display: inline-flex;
+      }
+
+      #pc-test-mode-button {
+        display: none;
+        border: 1px solid #183a8f;
+        border-radius: 999px;
+        padding: 12px 22px;
+        background: #fff;
+        color: #183a8f;
+        font: 800 15px/1 Arial, Helvetica, sans-serif;
+      }
+
+      #pc-test-panel {
+        position: fixed;
+        inset: 0;
+        z-index: 2147483644;
+        display: grid;
+        place-items: center;
+        padding: 24px;
+        background: rgba(0, 0, 0, 0.72);
+        color: #202020;
+        pointer-events: auto;
+      }
+
+      #pc-test-panel.hidden {
+        display: none;
+      }
+
+      .pc-test-card {
+        width: min(calc(100vw - 32px), 420px);
+        border-radius: 20px;
+        padding: 24px;
+        background: rgba(255, 255, 255, 0.96);
+        box-shadow: 0 18px 70px rgba(0, 0, 0, 0.35);
+      }
+
+      .pc-test-card h2 {
+        margin: 0 0 10px;
+        font-size: 24px;
+        line-height: 1.15;
+      }
+
+      .pc-test-card p {
+        margin: 0 0 18px;
+        color: #555;
+        font-size: 15px;
+      }
+
+      .pc-test-targets {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 8px;
+      }
+
+      .pc-test-targets button {
+        min-height: 44px;
+        border: 0;
+        border-radius: 12px;
+        background: #183a8f;
+        color: #fff;
+        font: 800 16px/1 Arial, Helvetica, sans-serif;
       }
 
       #christmas-flow-layer {
@@ -620,12 +685,15 @@
           <img src="./assets/lag-logo.jpg" alt="LAG" />
           <div id="lag-loading-text" class="lag-loading-text">Requesting camera access...</div>
           <button id="camera-permission-retry" type="button">Allow camera</button>
+          <button id="pc-test-mode-button" type="button">PC test mode</button>
         </div>
       `;
       document.body.appendChild(loadingOverlay);
       loadingText = document.getElementById('lag-loading-text');
       cameraRetryButton = document.getElementById('camera-permission-retry');
+      pcTestButton = document.getElementById('pc-test-mode-button');
       cameraRetryButton.addEventListener('click', () => requestCameraPermissionGate(true));
+      pcTestButton.addEventListener('click', enterPcTestMode);
     }
 
     if (!flowLayer) {
@@ -641,6 +709,19 @@
             <input id="child-name-input" type="text" maxlength="24" autocomplete="given-name" placeholder="Child name" />
             <div id="name-error" class="name-error"></div>
             <button id="save-name-button" type="button">Start scanning</button>
+          </div>
+        </div>
+        <div id="pc-test-panel" class="hidden">
+          <div class="pc-test-card">
+            <h2>PC test mode</h2>
+            <p>Choose a test target to run the Christmas flow without a camera.</p>
+            <div class="pc-test-targets">
+              <button type="button" data-pc-test-target="1">1</button>
+              <button type="button" data-pc-test-target="2">2</button>
+              <button type="button" data-pc-test-target="3">3</button>
+              <button type="button" data-pc-test-target="4">4</button>
+              <button type="button" data-pc-test-target="5">5</button>
+            </div>
           </div>
         </div>
         <button id="postcard-button" class="hidden" type="button" aria-label="Open Santa's postcard">
@@ -673,6 +754,7 @@
       nameInput = document.getElementById('child-name-input');
       nameError = document.getElementById('name-error');
       nameBadge = document.getElementById('name-badge');
+      pcTestPanel = document.getElementById('pc-test-panel');
       postcardButton = document.getElementById('postcard-button');
       postcardLottieContainer = document.getElementById('postcard-lottie');
       introLottieOverlay = document.getElementById('intro-lottie-overlay');
@@ -688,6 +770,11 @@
       });
       nameBadge.addEventListener('click', () => showNameGate(true));
       postcardButton.addEventListener('click', openPostcard);
+      pcTestPanel.addEventListener('click', (event) => {
+        const button = event.target.closest('[data-pc-test-target]');
+        if (!button) return;
+        startPcTestTarget(button.dataset.pcTestTarget);
+      });
       christmasVideo.addEventListener('ended', showComplete);
       document.getElementById('restart-button').addEventListener('click', restartExperience);
       ensureCompleteHeaderLottie().catch((error) => {
@@ -745,6 +832,12 @@
     nameGate.classList.add('hidden');
     refreshNameBadge();
     unlockSpeech();
+    if (state.pcTestActive) {
+      hideLoadingOverlay();
+      hideScanStatus();
+      showPcTestPanel();
+      return;
+    }
     waitForCameraReady();
     if (cameraPermissionGranted) bootAr();
     else requestCameraPermissionGate(true);
@@ -778,6 +871,42 @@
     if (cameraRetryButton) cameraRetryButton.classList.toggle('visible', Boolean(visible));
   }
 
+  function setPcTestButtonVisible(visible) {
+    ensureUi();
+    if (pcTestButton) pcTestButton.classList.toggle('visible', PC_TEST_MODE && Boolean(visible));
+  }
+
+  function showPcTestPanel() {
+    if (!PC_TEST_MODE || !pcTestPanel) return;
+    hideLoadingOverlay();
+    hideScanStatus();
+    if (nameGate) nameGate.classList.add('hidden');
+    pcTestPanel.classList.remove('hidden');
+  }
+
+  function hidePcTestPanel() {
+    if (pcTestPanel) pcTestPanel.classList.add('hidden');
+  }
+
+  function enterPcTestMode() {
+    if (!PC_TEST_MODE) return;
+    state.pcTestActive = true;
+    cameraPermissionGranted = false;
+    cameraPermissionInFlight = false;
+    waitingForCameraReady = false;
+    setPcTestButtonVisible(false);
+    setCameraRetryVisible(false);
+    if (!state.childName) showNameGate(true);
+    else showPcTestPanel();
+  }
+
+  function startPcTestTarget(targetName) {
+    if (!PC_TEST_MODE || !state.pcTestActive) return;
+    if (!targetNames.includes(String(targetName))) return;
+    hidePcTestPanel();
+    startChristmasFlow(targetName);
+  }
+
   function cameraErrorText(error) {
     if (!error) return 'Camera access is required.';
     if (error.name === 'NotAllowedError' || error.name === 'SecurityError') return 'Camera permission is required. Tap Allow camera and choose Allow.';
@@ -797,6 +926,7 @@
     showLoadingOverlay();
     hideScanStatus();
     setCameraRetryVisible(false);
+    setPcTestButtonVisible(false);
     setLoadingMessage(fromUserGesture ? 'Requesting camera access...' : 'Please allow camera access to start AR.');
     try {
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
@@ -806,6 +936,7 @@
       stream.getTracks().forEach((track) => track.stop());
       cameraPermissionGranted = true;
       setCameraRetryVisible(false);
+      setPcTestButtonVisible(false);
       setLoadingMessage('Starting AR camera...');
       bootAr();
     } catch (error) {
@@ -813,6 +944,7 @@
       cameraPermissionGranted = false;
       setLoadingMessage(cameraErrorText(error));
       setCameraRetryVisible(true);
+      setPcTestButtonVisible(true);
     } finally {
       cameraPermissionInFlight = false;
     }
@@ -939,6 +1071,7 @@
       bootRequested = false;
       setLoadingMessage(`AR setup failed: ${errorText(error)}`);
       setCameraRetryVisible(true);
+      setPcTestButtonVisible(true);
       hideScanStatus();
     }
   }
@@ -1181,6 +1314,7 @@
     state.santaMode = 'hidden';
     state.santaTime = 0;
     hideScanStatus();
+    hidePcTestPanel();
     postcardButton.classList.add('hidden');
     postcardButton.classList.remove('opening', 'lottie-done', 'lottie-visible');
     resetPostcardLottie();
@@ -1534,6 +1668,10 @@
     state.postcardReady = false;
     state.videoPlaying = false;
     state.santaMode = 'hidden';
+    if (state.pcTestActive) {
+      showPcTestPanel();
+      return;
+    }
     showScanStatus();
     setScanStatus('Scanning...');
   }
