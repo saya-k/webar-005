@@ -2,9 +2,6 @@
   const targetNames = ['1', '2', '3', '4', '5'];
   const NAME_KEY = 'christmasChildName';
   const PC_TEST_MODE = new URLSearchParams(window.location.search).get('pcTest') === '1';
-  const STATIC_SANTA_DIAGNOSTIC = false;
-  const SANTA_BASE_X = 0.25;
-  const SANTA_BASE_Y = 0;
 
   let scanStatus;
   let scanGuide;
@@ -14,7 +11,6 @@
   let nameInput;
   let nameError;
   let nameBadge;
-  let santaCanvas;
   let postcardButton;
   let postcardLottieContainer;
   let postcardLottieAnimation;
@@ -41,29 +37,11 @@
   let waitingForCameraReady = false;
   let bootRequested = false;
   let cameraWaitToken = 0;
-  let threeReady = false;
-  let threeInitPromise = null;
-  let renderer;
-  let scene;
-  let camera;
-  let santa;
-  let mixer;
-  let santaActions = {};
-  let unitySantaClips = {};
-  let unityAnimationTemp = null;
-  let activeUnityClip = null;
-  let activeUnityTime = 0;
-  let currentSantaAction = null;
-  let desiredSantaAction = 'Santa_DanceIdle';
-  let clock;
-
   const state = {
     childName: localStorage.getItem(NAME_KEY) || '',
     experienceStarted: false,
     postcardReady: false,
     videoPlaying: false,
-    santaMode: 'hidden',
-    santaTime: 0,
     speechWatchdog: null,
     speechDeadlineAt: 0,
     flowToken: 0,
@@ -207,19 +185,6 @@
 
       #christmas-flow-layer.passthrough {
         pointer-events: none;
-      }
-
-      #christmas-santa-canvas {
-        position: absolute;
-        inset: 0;
-        width: 100%;
-        height: 100%;
-        display: none;
-        pointer-events: none;
-      }
-
-      #christmas-santa-canvas.visible {
-        display: block;
       }
 
       #target-scan-status {
@@ -714,7 +679,6 @@
       flowLayer = document.createElement('div');
       flowLayer.id = 'christmas-flow-layer';
       flowLayer.innerHTML = `
-        <canvas id="christmas-santa-canvas"></canvas>
         <button id="name-badge" type="button"></button>
         <div id="name-gate" class="hidden">
           <div class="name-card">
@@ -763,7 +727,6 @@
       `;
       document.body.appendChild(flowLayer);
 
-      santaCanvas = document.getElementById('christmas-santa-canvas');
       nameGate = document.getElementById('name-gate');
       nameInput = document.getElementById('child-name-input');
       nameError = document.getElementById('name-error');
@@ -1032,7 +995,6 @@
     try {
       installStyles();
       ensureUi();
-      startThreeInBackground();
       const imageTargetData = await loadImageTargets();
       if (!window.XR8 || !window.XR8.XrController) {
         window.addEventListener('xrloaded', configureImageTargets, { once: true });
@@ -1098,217 +1060,6 @@
     else window.addEventListener('xrloaded', configureImageTargets, { once: true });
   }
 
-  function startThreeInBackground() {
-    if (threeReady || threeInitPromise) return;
-    threeInitPromise = initThree()
-      .catch((error) => {
-        console.warn('[Christmas AR] Three.js background init failed:', error);
-      })
-      .finally(() => {
-        threeInitPromise = null;
-      });
-  }
-  async function initThree() {
-    if (threeReady) return;
-    const THREE = await import('https://esm.sh/three@0.161.0');
-    const { GLTFLoader } = await import('https://esm.sh/three@0.161.0/examples/jsm/loaders/GLTFLoader.js?bundle');
-    window.__ChristmasTHREE = THREE;
-
-    renderer = new THREE.WebGLRenderer({ canvas: santaCanvas, alpha: true, antialias: true, powerPreference: 'high-performance' });
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
-    renderer.setClearColor(0x000000, 0);
-
-    scene = new THREE.Scene();
-    camera = new THREE.PerspectiveCamera(34, 1, 0.1, 100);
-    camera.position.set(0, 0.12, 7.2);
-
-    scene.add(new THREE.HemisphereLight(0xffffff, 0x8892a6, 2.25));
-    const key = new THREE.DirectionalLight(0xffffff, 2.0);
-    key.position.set(3, 4, 5);
-    scene.add(key);
-
-    santa = new THREE.Group();
-    santa.visible = false;
-    scene.add(santa);
-
-    const loader = new GLTFLoader();
-    loader.load('./assets/MongoScene.glb', (gltf) => {
-      const modelRoot = normalizeLoadedSanta(gltf.scene, THREE);
-      modelRoot.visible = santa.visible;
-      scene.remove(santa);
-      santa = modelRoot;
-      scene.add(santa);
-      santaActions = {};
-      currentSantaAction = null;
-      if (gltf.animations && gltf.animations.length > 0) {
-        mixer = new THREE.AnimationMixer(gltf.scene);
-        gltf.animations.forEach((clip) => {
-          const action = mixer.clipAction(clip);
-          action.setLoop(THREE.LoopRepeat, Infinity);
-          action.clampWhenFinished = false;
-          santaActions[clip.name] = action;
-          if (clip.name.indexOf('Hip_Hop_Dancing_1') !== -1 || clip.name.indexOf('DanceIdle') !== -1) santaActions.Santa_DanceIdle = action;
-          if (clip.name.indexOf('WaveHello') !== -1) santaActions.Santa_WaveHello = action;
-        });
-        playSantaAction(desiredSantaAction, 0);
-      }
-    }, undefined, (error) => {
-      console.warn('[Christmas AR] Failed to load MongoScene.glb', error);
-    });
-
-    clock = new THREE.Clock();
-    threeReady = true;
-    resizeSantaCanvas();
-    window.addEventListener('resize', resizeSantaCanvas, { passive: true });
-    requestAnimationFrame(renderSanta);
-  }
-
-  function normalizeLoadedSanta(model, THREE) {
-    const root = new THREE.Group();
-    model.traverse((child) => {
-      if (child.isMesh) {
-        child.frustumCulled = false;
-        const materials = Array.isArray(child.material) ? child.material : [child.material];
-        materials.forEach((material) => {
-          if (material) {
-            material.side = THREE.DoubleSide;
-            material.needsUpdate = true;
-          }
-        });
-      }
-    });
-    const box = new THREE.Box3().setFromObject(model);
-    const size = new THREE.Vector3();
-    const center = new THREE.Vector3();
-    box.getSize(size);
-    box.getCenter(center);
-    const height = Math.max(size.y, 0.001);
-    const scale = 1.175 / height;
-    model.scale.setScalar(scale);
-    model.position.set(-center.x * scale, -center.y * scale - 0.82, -center.z * scale);
-    root.add(model);
-    root.position.set(SANTA_BASE_X, SANTA_BASE_Y, 0);
-    return root;
-  }
-
-  function resizeSantaCanvas() {
-    if (!renderer || !camera) return;
-    const width = window.innerWidth;
-    const height = window.innerHeight;
-    renderer.setSize(width, height, false);
-    camera.aspect = width / height;
-    camera.updateProjectionMatrix();
-  }
-
-  async function loadSantaAnimationSamples() {
-    const response = await fetch('./assets/santa-animation-samples.json?v=unity-anim-1', { cache: 'no-store' });
-    if (response.status === 404) {
-      return { clips: [] };
-    }
-    if (!response.ok) throw new Error(`Failed to load Santa animation samples: ${response.status}`);
-    return response.json();
-  }
-
-  function setupUnitySantaAnimations(samples, santaRoot, THREE) {
-    const nodesByName = {};
-    santaRoot.traverse((node) => {
-      if (node.name) nodesByName[node.name] = node;
-    });
-    unityAnimationTemp = {
-      qa: new THREE.Quaternion(),
-      qb: new THREE.Quaternion(),
-    };
-    unitySantaClips = {};
-    (samples.clips || []).forEach((clip) => {
-      const tracks = (clip.bones || [])
-        .filter((bone) => bone.name !== 'Root')
-        .map((bone) => ({ name: bone.name, node: nodesByName[bone.name], frames: bone.frames || [] }))
-        .filter((track) => track.node && track.frames.length > 0);
-      unitySantaClips[clip.name] = {
-        name: clip.name,
-        length: Math.max(Number(clip.length) || 0, 0.001),
-        times: clip.times || [],
-        tracks,
-      };
-    });
-    console.log('[Christmas AR] Unity Santa clips loaded:', Object.keys(unitySantaClips));
-  }
-  function playSantaAction(name, fadeSeconds = 0.3) {
-    desiredSantaAction = name;
-    activeUnityClip = null;
-    if (!mixer || !santaActions[name]) return;
-    const next = santaActions[name];
-    if (currentSantaAction === next) return;
-    next.enabled = true;
-    next.reset();
-    next.play();
-    if (currentSantaAction && fadeSeconds > 0) {
-      currentSantaAction.crossFadeTo(next, fadeSeconds, false);
-    } else if (currentSantaAction) {
-      currentSantaAction.stop();
-    }
-    currentSantaAction = next;
-  }
-
-  function renderSanta() {
-    if (renderer && scene && camera) {
-      const delta = clock ? clock.getDelta() : 0.016;
-      if (mixer) mixer.update(delta);
-      updateUnitySantaAnimation(delta);
-      animateSanta(delta);
-      renderer.render(scene, camera);
-    }
-    requestAnimationFrame(renderSanta);
-  }
-
-  function updateUnitySantaAnimation(delta) {
-    if (!activeUnityClip || !santa || !santa.visible) return;
-    activeUnityTime = (activeUnityTime + delta) % activeUnityClip.length;
-    applyUnitySantaAnimation(activeUnityClip, activeUnityTime);
-  }
-
-  function applyUnitySantaAnimation(clip, time) {
-    const times = clip.times;
-    if (!times || times.length === 0 || !unityAnimationTemp) return;
-    let nextIndex = times.findIndex((sampleTime) => sampleTime >= time);
-    if (nextIndex < 0) nextIndex = 0;
-    const prevIndex = nextIndex === 0 ? Math.max(times.length - 1, 0) : nextIndex - 1;
-    const prevTime = times[prevIndex] || 0;
-    const nextTime = times[nextIndex] || 0;
-    const span = nextIndex === 0 ? Math.max((clip.length - prevTime) + nextTime, 0.0001) : Math.max(nextTime - prevTime, 0.0001);
-    const elapsed = nextIndex === 0 ? (time >= prevTime ? time - prevTime : (clip.length - prevTime) + time) : time - prevTime;
-    const alpha = Math.max(0, Math.min(1, elapsed / span));
-
-    clip.tracks.forEach((track) => {
-      const a = track.frames[prevIndex] || track.frames[0];
-      const b = track.frames[nextIndex] || track.frames[0];
-      if (!a || !b) return;
-      if (track.name === 'Hips') {
-        track.node.position.set(
-          lerp(a.p.x, b.p.x, alpha),
-          lerp(a.p.y, b.p.y, alpha),
-          lerp(a.p.z, b.p.z, alpha),
-        );
-      }
-      unityAnimationTemp.qa.set(a.r.x, a.r.y, a.r.z, a.r.w);
-      unityAnimationTemp.qb.set(b.r.x, b.r.y, b.r.z, b.r.w);
-      track.node.quaternion.slerpQuaternions(unityAnimationTemp.qa, unityAnimationTemp.qb, alpha);
-    });
-  }
-
-  function lerp(a, b, t) {
-    return a + (b - a) * t;
-  }
-  function animateSanta(delta) {
-    if (!santa || !santa.visible) return;
-    if (!STATIC_SANTA_DIAGNOSTIC) return;
-    if (santaActions && Object.keys(santaActions).length > 0) return;
-    state.santaTime += delta;
-    const t = state.santaTime;
-    santa.rotation.y = Math.sin(t * 1.5) * 0.12;
-    santa.position.y = SANTA_BASE_Y + Math.sin(t * 4.6) * 0.025;
-  }
-
   function handleTargetFound(targetName) {
     if (!targetNames.includes(String(targetName))) return;
     if (!state.childName) {
@@ -1326,8 +1077,6 @@
     state.experienceStarted = true;
     state.postcardReady = false;
     state.videoPlaying = false;
-    state.santaMode = 'hidden';
-    state.santaTime = 0;
     hideScanStatus();
     hidePcTestPanel();
     preloadPostcardLottie();
@@ -1337,9 +1086,6 @@
     resetIntroLottie();
     videoOverlay.classList.add('hidden');
     completeOverlay.classList.add('hidden');
-    santaCanvas.classList.remove('visible');
-    if (santa) santa.visible = false;
-
     speakIntro();
 
     playIntroLottieOnce(() => {
@@ -1374,9 +1120,6 @@
       try { if ('speechSynthesis' in window) speechSynthesis.cancel(); } catch {}
     }
     state.postcardReady = true;
-    state.santaMode = 'hidden';
-    santaCanvas.classList.remove('visible');
-    if (santa) santa.visible = false;
     postcardButton.classList.remove('hidden');
     showPostcardLottieFirstFrame();
   }
@@ -1677,8 +1420,6 @@
     postcardButton.classList.remove('opening');
     await playPostcardLottieForward();
     postcardButton.classList.add('hidden');
-    santaCanvas.classList.remove('visible');
-    if (santa) santa.visible = false;
     videoOverlay.classList.remove('hidden');
     christmasVideo.loop = false;
     christmasVideo.currentTime = 0;
@@ -1708,12 +1449,9 @@
     resetPostcardLottie();
     resetIntroLottie();
     stopCompleteHeaderLottie();
-    santaCanvas.classList.remove('visible');
-    if (santa) santa.visible = false;
     state.experienceStarted = false;
     state.postcardReady = false;
     state.videoPlaying = false;
-    state.santaMode = 'hidden';
     if (state.pcTestActive) {
       showPcTestPanel();
       return;
