@@ -31,6 +31,7 @@
   let pcTestPanel;
   let arCanvas;
   let xrPipelineStarted = false;
+  let arCanvasResizeInstalled = false;
 
   let appStarted = false;
   let cameraPermissionGranted = false;
@@ -73,9 +74,13 @@
 
       #xr-camera-canvas {
         position: fixed;
-        inset: 0;
-        width: 100%;
-        height: 100%;
+        left: 0;
+        top: 0;
+        display: block;
+        width: 100vw;
+        height: 100vh;
+        max-width: none;
+        max-height: none;
         z-index: 0;
         background: #000;
       }
@@ -790,7 +795,7 @@
         '<div class="scan-corner br"></div>' +
         '<div class="scan-line"></div>' +
         '<div class="scan-guide-text">Place the object inside the frame.</div>' +
-        '<div class="scan-version">1.0.25</div>';
+        '<div class="scan-version">1.0.26</div>';
       document.body.appendChild(scanGuide);
     }
 
@@ -949,7 +954,7 @@
       cameraPermissionGranted = true;
       setCameraRetryVisible(false);
       setPcTestButtonVisible(false);
-      setLoadingMessage('Starting AR camera... v1.0.25');
+      setLoadingMessage('Starting AR camera... v1.0.26');
       waitForCameraReady();
       bootAr();
     } catch (error) {
@@ -1003,11 +1008,42 @@
     if (scanGuide) scanGuide.classList.remove('hidden');
   }
 
+  function getViewportSize() {
+    const viewport = window.visualViewport;
+    return {
+      width: Math.max(1, Math.round(viewport ? viewport.width : window.innerWidth)),
+      height: Math.max(1, Math.round(viewport ? viewport.height : window.innerHeight)),
+    };
+  }
+
+  function syncArCanvasSize() {
+    if (!arCanvas) return;
+    const size = getViewportSize();
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const pixelWidth = Math.round(size.width * dpr);
+    const pixelHeight = Math.round(size.height * dpr);
+    if (arCanvas.width !== pixelWidth) arCanvas.width = pixelWidth;
+    if (arCanvas.height !== pixelHeight) arCanvas.height = pixelHeight;
+    arCanvas.style.width = `${size.width}px`;
+    arCanvas.style.height = `${size.height}px`;
+  }
+
+  function installArCanvasResizeHandler() {
+    if (arCanvasResizeInstalled) return;
+    arCanvasResizeInstalled = true;
+    window.addEventListener('resize', syncArCanvasSize);
+    window.addEventListener('orientationchange', () => setTimeout(syncArCanvasSize, 250));
+    if (window.visualViewport) window.visualViewport.addEventListener('resize', syncArCanvasSize);
+  }
+
   function ensureArCanvas() {
-    if (arCanvas) return arCanvas;
-    arCanvas = document.createElement('canvas');
-    arCanvas.id = 'xr-camera-canvas';
-    document.body.insertBefore(arCanvas, document.body.firstChild);
+    if (!arCanvas) {
+      arCanvas = document.createElement('canvas');
+      arCanvas.id = 'xr-camera-canvas';
+      document.body.insertBefore(arCanvas, document.body.firstChild);
+      installArCanvasResizeHandler();
+    }
+    syncArCanvasSize();
     return arCanvas;
   }
 
@@ -1017,6 +1053,7 @@
     xrPipelineStarted = true;
     try {
       const canvas = ensureArCanvas();
+      syncArCanvasSize();
       if (window.XR8.GlTextureRenderer && window.XR8.GlTextureRenderer.pipelineModule) {
         window.XR8.addCameraPipelineModule(window.XR8.GlTextureRenderer.pipelineModule());
       }
