@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <title>8th Wall Minimal Image Target Test</title>
+  <style>
+    html,
+    body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      background: #050505;
+      color: #fff;
+      font-family: Arial, Helvetica, sans-serif;
+    }
+
+    #camerafeed {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      background: #050505;
+    }
+
+    #panel {
+      position: fixed;
+      left: 14px;
+      right: 14px;
+      bottom: calc(18px + env(safe-area-inset-bottom, 0px));
+      z-index: 10;
+      display: grid;
+      gap: 10px;
+      padding: 14px;
+      border-radius: 8px;
+      background: rgba(0, 0, 0, 0.72);
+      box-shadow: 0 12px 34px rgba(0, 0, 0, 0.32);
+    }
+
+    #status {
+      min-height: 42px;
+      font-size: 15px;
+      line-height: 1.35;
+      white-space: pre-wrap;
+    }
+
+    #startButton {
+      min-height: 48px;
+      border: 0;
+      border-radius: 999px;
+      background: #183a8f;
+      color: #fff;
+      font-size: 17px;
+      font-weight: 800;
+    }
+  </style>
+  <script async crossorigin="anonymous" src="https://cdn.jsdelivr.net/npm/@8thwall/engine-binary@1/dist/xr.js"></script>
+</head>
+<body>
+  <canvas id="camerafeed"></canvas>
+  <div id="panel">
+    <div id="status">Minimal 8th Wall image-target test v0.1
+Waiting for XR engine...</div>
+    <button id="startButton" type="button">Start minimal AR test</button>
+  </div>
+
+  <script>
+    const targetNames = ['1', '2', '3', '4', '5'];
+    const canvas = document.getElementById('camerafeed');
+    const statusEl = document.getElementById('status');
+    const startButton = document.getElementById('startButton');
+
+    let started = false;
+    let xrReady = false;
+
+    function setStatus(message) {
+      statusEl.textContent = `Minimal 8th Wall image-target test v0.1\n${message}`;
+      console.log('[minimal-8thwall]', message);
+    }
+
+    function appendStatus(message) {
+      statusEl.textContent += `\n${message}`;
+      console.log('[minimal-8thwall]', message);
+    }
+
+    async function requestIosMotionPermission() {
+      const requesters = [window.DeviceMotionEvent, window.DeviceOrientationEvent]
+        .filter((api) => api && typeof api.requestPermission === 'function');
+      for (const api of requesters) {
+        const result = await api.requestPermission();
+        if (result !== 'granted') throw new Error('motion permission denied');
+      }
+    }
+
+    async function loadImageTargetData() {
+      const data = await Promise.all(targetNames.map(async (name) => {
+        const response = await fetch(`./image-targets/${name}.json?v=0.1`, { cache: 'no-store' });
+        if (!response.ok) throw new Error(`target ${name} json ${response.status}`);
+        return response.json();
+      }));
+      appendStatus(`loaded ${data.length} image target json files`);
+      return data;
+    }
+
+    function onxrloaded() {
+      xrReady = true;
+      setStatus('XR engine loaded. Tap Start.');
+    }
+
+    async function start() {
+      if (started) return;
+      started = true;
+      startButton.disabled = true;
+      setStatus('start clicked');
+
+      try {
+        await requestIosMotionPermission();
+        if (!window.XR8) throw new Error('XR8 missing after xrloaded');
+
+        const imageTargetData = await loadImageTargetData();
+        XR8.XrController.configure({
+          disableWorldTracking: true,
+          imageTargetData,
+          imageTargets: targetNames,
+        });
+
+        XR8.addCameraPipelineModule(XR8.GlTextureRenderer.pipelineModule());
+        XR8.addCameraPipelineModule(XR8.XrController.pipelineModule());
+        XR8.addCameraPipelineModule({
+          name: 'minimal-status',
+          onBeforeRun: () => appendStatus('XR8.run called'),
+          onCameraStatusChange: ({ status }) => appendStatus(`camera status: ${status}`),
+          onStart: () => appendStatus('XR onStart'),
+          onException: (error) => appendStatus(`XR exception: ${error && (error.message || error)}`),
+          listeners: [
+            { event: 'reality.imageloading', process: ({ detail }) => appendStatus(`image loading: ${detail && detail.name}`) },
+            { event: 'reality.imagescanning', process: ({ detail }) => appendStatus(`image scanning: ${detail && detail.name}`) },
+            { event: 'reality.imagefound', process: ({ detail }) => appendStatus(`image found: ${detail && detail.name}`) },
+            { event: 'reality.imageupdated', process: ({ detail }) => appendStatus(`image updated: ${detail && detail.name}`) },
+            { event: 'reality.imagelost', process: ({ detail }) => appendStatus(`image lost: ${detail && detail.name}`) },
+          ],
+        });
+
+        XR8.run({
+          canvas,
+          allowedDevices: XR8.XrConfig.device().ANY,
+        });
+      } catch (error) {
+        started = false;
+        startButton.disabled = false;
+        setStatus(`startup error: ${error && (error.message || error)}`);
+      }
+    }
+
+    startButton.addEventListener('click', start);
+    window.XR8 ? onxrloaded() : window.addEventListener('xrloaded', onxrloaded, { once: true });
+    setTimeout(() => {
+      if (!xrReady) setStatus('XR engine did not load after 12s');
+    }, 12000);
+  </script>
+</body>
+</html>
