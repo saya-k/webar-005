@@ -37,6 +37,7 @@
   let waitingForCameraReady = false;
   let bootRequested = false;
   let cameraWaitToken = 0;
+  let xrLoadTimer = 0;
   const state = {
     childName: localStorage.getItem(NAME_KEY) || '',
     experienceStarted: false,
@@ -893,9 +894,28 @@
     return 'Camera access failed. Tap Allow camera to try again.';
   }
 
+  async function requestIosMotionPermission() {
+    const requesters = [window.DeviceMotionEvent, window.DeviceOrientationEvent]
+      .filter((api) => api && typeof api.requestPermission === 'function');
+    for (const api of requesters) {
+      const result = await api.requestPermission();
+      if (result !== 'granted') throw new Error('motion permission denied');
+    }
+  }
+
   async function requestCameraPermissionGate(fromUserGesture) {
     ensureUi();
+    if (!fromUserGesture && !cameraPermissionGranted) {
+      showLoadingOverlay();
+      hideScanStatus();
+      setLoadingMessage('Tap to start AR camera');
+      if (cameraRetryButton) cameraRetryButton.textContent = 'Tap to start AR';
+      setCameraRetryVisible(true);
+      setPcTestButtonVisible(true);
+      return;
+    }
     if (cameraPermissionGranted) {
+      waitForCameraReady();
       bootAr();
       return;
     }
@@ -905,8 +925,10 @@
     hideScanStatus();
     setCameraRetryVisible(false);
     setPcTestButtonVisible(false);
-    setLoadingMessage(fromUserGesture ? 'Requesting camera access...' : 'Please allow camera access to start AR.');
+    if (cameraRetryButton) cameraRetryButton.textContent = 'Allow camera';
+    setLoadingMessage('Requesting camera access...');
     try {
+      await requestIosMotionPermission();
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
         throw new Error('getUserMedia unavailable');
       }
@@ -916,11 +938,13 @@
       setCameraRetryVisible(false);
       setPcTestButtonVisible(false);
       setLoadingMessage('Starting AR camera...');
+      waitForCameraReady();
       bootAr();
     } catch (error) {
       console.warn('[Christmas AR] camera permission gate failed:', error);
       cameraPermissionGranted = false;
       setLoadingMessage(cameraErrorText(error));
+      if (cameraRetryButton) cameraRetryButton.textContent = 'Try again';
       setCameraRetryVisible(true);
       setPcTestButtonVisible(true);
     } finally {
@@ -935,7 +959,11 @@
     setTimeout(() => {
       if (!waitingForCameraReady || token !== cameraWaitToken) return;
       if (!cameraStarted) {
-        setLoadingMessage('Starting AR camera...');
+        waitingForCameraReady = false;
+        setLoadingMessage('AR camera did not start. Open in Safari and tap Try again.');
+        if (cameraRetryButton) cameraRetryButton.textContent = 'Try again';
+        setCameraRetryVisible(true);
+        setPcTestButtonVisible(true);
         return;
       }
       waitingForCameraReady = false;
@@ -1056,8 +1084,22 @@
   function bootAr() {
     if (bootRequested || appStarted) return;
     bootRequested = true;
-    if (window.XR8) configureImageTargets();
-    else window.addEventListener('xrloaded', configureImageTargets, { once: true });
+    if (window.XR8) {
+      configureImageTargets();
+      return;
+    }
+    setLoadingMessage('Loading AR engine...');
+    window.addEventListener('xrloaded', configureImageTargets, { once: true });
+    clearTimeout(xrLoadTimer);
+    xrLoadTimer = setTimeout(() => {
+      if (window.XR8 || appStarted || cameraStarted) return;
+      bootRequested = false;
+      waitingForCameraReady = false;
+      setLoadingMessage('AR engine failed to load. Check network/VPN, then tap Try again.');
+      if (cameraRetryButton) cameraRetryButton.textContent = 'Try again';
+      setCameraRetryVisible(true);
+      setPcTestButtonVisible(true);
+    }, 12000);
   }
 
   function handleTargetFound(targetName) {
