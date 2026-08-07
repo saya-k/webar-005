@@ -59,12 +59,12 @@
     async
     crossorigin="anonymous"
     src="https://cdn.jsdelivr.net/npm/@8thwall/engine-binary@1/dist/xr.js"
-    data-preload-chunks="image-targets"></script>
+    data-preload-chunks="slam"></script>
 </head>
 <body>
   <canvas id="camerafeed"></canvas>
   <div id="panel">
-    <div id="status">Minimal 8th Wall image-target test v0.2
+    <div id="status">Minimal 8th Wall image-target test v0.3
 Waiting for XR engine...</div>
     <button id="startButton" type="button">Start minimal AR test</button>
   </div>
@@ -79,7 +79,7 @@ Waiting for XR engine...</div>
     let xrReady = false;
 
     function setStatus(message) {
-      statusEl.textContent = `Minimal 8th Wall image-target test v0.2\n${message}`;
+      statusEl.textContent = `Minimal 8th Wall image-target test v0.3\n${message}`;
       console.log('[minimal-8thwall]', message);
     }
 
@@ -116,7 +116,7 @@ Waiting for XR engine...</div>
             return;
           }
           if (Date.now() - startedAt > 12000) {
-            reject(new Error('XR8.XrController unavailable after image-target preload'));
+            reject(new Error('XR8.XrController unavailable after slam preload'));
             return;
           }
           setTimeout(tick, 100);
