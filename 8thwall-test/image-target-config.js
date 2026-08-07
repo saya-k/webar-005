@@ -38,6 +38,7 @@
   let bootRequested = false;
   let cameraWaitToken = 0;
   let xrLoadTimer = 0;
+  let cameraDebugStatus = '';
   const state = {
     childName: localStorage.getItem(NAME_KEY) || '',
     experienceStarted: false,
@@ -845,6 +846,11 @@
     if (loadingText) loadingText.textContent = text;
   }
 
+  function setCameraDebugStatus(status) {
+    cameraDebugStatus = status || cameraDebugStatus;
+    if (cameraDebugStatus) setLoadingMessage(`AR camera status: ${cameraDebugStatus}`);
+  }
+
   function setCameraRetryVisible(visible) {
     ensureUi();
     if (cameraRetryButton) cameraRetryButton.classList.toggle('visible', Boolean(visible));
@@ -932,7 +938,7 @@
       cameraPermissionGranted = true;
       setCameraRetryVisible(false);
       setPcTestButtonVisible(false);
-      setLoadingMessage('Starting AR camera... v1.0.23');
+      setLoadingMessage('Starting AR camera... v1.0.24');
       waitForCameraReady();
       bootAr();
     } catch (error) {
@@ -1033,6 +1039,21 @@
 
       window.XR8.addCameraPipelineModule({
         name: 'christmas-image-target-flow',
+        onCameraStatusChange: ({ status }) => {
+          console.log('[Christmas AR] camera status:', status);
+          setCameraDebugStatus(status);
+          if (status === 'hasVideo') {
+            cameraStarted = true;
+            waitingForCameraReady = false;
+            hideLoadingOverlay();
+          } else if (status === 'failed') {
+            waitingForCameraReady = false;
+            setLoadingMessage('AR camera failed. Check Safari camera permission and tap Try again.');
+            if (cameraRetryButton) cameraRetryButton.textContent = 'Try again';
+            setCameraRetryVisible(true);
+            setPcTestButtonVisible(true);
+          }
+        },
         onStart: () => {
           cameraStarted = true;
           waitingForCameraReady = false;
