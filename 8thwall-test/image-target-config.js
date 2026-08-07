@@ -1,4 +1,4 @@
-(function () {
+﻿(function () {
   const targetNames = ['1', '2', '3', '4', '5'];
   const NAME_KEY = 'christmasChildName';
   const PC_TEST_MODE = new URLSearchParams(window.location.search).get('pcTest') === '1';
@@ -937,7 +937,7 @@
       cameraPermissionGranted = true;
       setCameraRetryVisible(false);
       setPcTestButtonVisible(false);
-      setLoadingMessage('Starting AR camera...');
+      setLoadingMessage('Starting AR camera... v1.0.22');
       waitForCameraReady();
       bootAr();
     } catch (error) {
