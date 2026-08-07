@@ -29,6 +29,8 @@
   let cameraRetryButton;
   let pcTestButton;
   let pcTestPanel;
+  let arCanvas;
+  let xrPipelineStarted = false;
 
   let appStarted = false;
   let cameraPermissionGranted = false;
@@ -67,6 +69,15 @@
 
       canvas {
         touch-action: none;
+      }
+
+      #xr-camera-canvas {
+        position: fixed;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 0;
+        background: #000;
       }
 
       #lag-loading-overlay {
@@ -779,7 +790,7 @@
         '<div class="scan-corner br"></div>' +
         '<div class="scan-line"></div>' +
         '<div class="scan-guide-text">Place the object inside the frame.</div>' +
-        '<div class="scan-version">1.0.21</div>';
+        '<div class="scan-version">1.0.25</div>';
       document.body.appendChild(scanGuide);
     }
 
@@ -938,7 +949,7 @@
       cameraPermissionGranted = true;
       setCameraRetryVisible(false);
       setPcTestButtonVisible(false);
-      setLoadingMessage('Starting AR camera... v1.0.24');
+      setLoadingMessage('Starting AR camera... v1.0.25');
       waitForCameraReady();
       bootAr();
     } catch (error) {
@@ -992,13 +1003,39 @@
     if (scanGuide) scanGuide.classList.remove('hidden');
   }
 
+  function ensureArCanvas() {
+    if (arCanvas) return arCanvas;
+    arCanvas = document.createElement('canvas');
+    arCanvas.id = 'xr-camera-canvas';
+    document.body.insertBefore(arCanvas, document.body.firstChild);
+    return arCanvas;
+  }
+
   function startApp() {
-    if (appStarted) return;
+    if (appStarted || xrPipelineStarted) return;
     appStarted = true;
-    const script = document.createElement('script');
-    script.src = './bundle.js';
-    script.onerror = () => setScanStatus('Failed to load app bundle');
-    document.body.appendChild(script);
+    xrPipelineStarted = true;
+    try {
+      const canvas = ensureArCanvas();
+      if (window.XR8.GlTextureRenderer && window.XR8.GlTextureRenderer.pipelineModule) {
+        window.XR8.addCameraPipelineModule(window.XR8.GlTextureRenderer.pipelineModule());
+      }
+      window.XR8.addCameraPipelineModule(window.XR8.XrController.pipelineModule());
+      const runConfig = { canvas };
+      if (window.XR8.XrConfig && window.XR8.XrConfig.device) {
+        runConfig.allowedDevices = window.XR8.XrConfig.device().ANY;
+      }
+      window.XR8.run(runConfig);
+    } catch (error) {
+      console.error('[Christmas AR] direct XR startup failed:', error);
+      appStarted = false;
+      xrPipelineStarted = false;
+      setLoadingMessage(`AR startup failed: ${errorText(error)}`);
+      if (cameraRetryButton) cameraRetryButton.textContent = 'Try again';
+      setCameraRetryVisible(true);
+      setPcTestButtonVisible(true);
+      hideScanStatus();
+    }
   }
 
   function errorText(error) {
@@ -1019,22 +1056,36 @@
     return targets;
   }
 
+  function waitForXrController() {
+    return new Promise((resolve, reject) => {
+      const startedAt = Date.now();
+      const tick = () => {
+        if (window.XR8 && window.XR8.XrController && window.XR8.XrController.configure) {
+          resolve();
+          return;
+        }
+        if (Date.now() - startedAt > 12000) {
+          reject(new Error('XR8.XrController unavailable after slam preload'));
+          return;
+        }
+        setTimeout(tick, 100);
+      };
+      tick();
+    });
+  }
   async function configureImageTargets() {
     bootRequested = true;
     try {
       installStyles();
       ensureUi();
       const imageTargetData = await loadImageTargets();
-      if (!window.XR8 || !window.XR8.XrController) {
-        window.addEventListener('xrloaded', configureImageTargets, { once: true });
-        return;
-      }
+      await waitForXrController();
 
       window.__christmasImageTargetData = imageTargetData;
       window.XR8.XrController.configure({
         disableWorldTracking: true,
         imageTargetData,
-        imageTargets: imageTargetData,
+        imageTargets: targetNames,
       });
 
       window.XR8.addCameraPipelineModule({
