@@ -929,15 +929,10 @@
     setLoadingMessage('Requesting camera access...');
     try {
       await requestIosMotionPermission();
-      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        throw new Error('getUserMedia unavailable');
-      }
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false });
-      stream.getTracks().forEach((track) => track.stop());
       cameraPermissionGranted = true;
       setCameraRetryVisible(false);
       setPcTestButtonVisible(false);
-      setLoadingMessage('Starting AR camera... v1.0.22');
+      setLoadingMessage('Starting AR camera... v1.0.23');
       waitForCameraReady();
       bootAr();
     } catch (error) {
